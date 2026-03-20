@@ -70,23 +70,12 @@ English-only models (`.en` suffix) are faster and more accurate for English cont
 ## Development
 
 ```bash
-# Run tests
-bun run test
-
-# Run tests in watch mode
-bun run test:watch
-
-# Lint
-bun run lint
-
-# Type check
-bun run typecheck
-
-# Format code
-bun run format
-
-# Open Remotion Studio (preview compositions)
-bun run studio
+just test          # Run tests
+just test-watch    # Run tests in watch mode
+just lint          # Lint code
+just typecheck     # Type check
+just format        # Format code
+just dev           # Open Remotion Studio
 ```
 
 ## Project Structure
@@ -113,10 +102,12 @@ tests/
 
 ## Roadmap
 
-- SRT/VTT file export
-- Multiple caption style presets (karaoke, subtitle, pop)
 - Font selection via Google Fonts
-- GPU-accelerated rendering
+- Animation presets (typewriter, fade-in, slide-up)
+- Word highlight effects (background, underline, scale)
+- Caption templates (TikTok, YouTube, professional, minimal)
+- Custom positioning with pixel offsets
+- Shadow/outline effects
+- SRT/VTT file export
 - Batch processing (multiple videos)
-- Caption editing UI via Remotion Studio
 - Language auto-detection and translation
