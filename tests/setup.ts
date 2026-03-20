@@ -1,7 +1,7 @@
-import type { Caption } from "@remotion/captions";
 import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { Caption } from "@remotion/captions";
 
 export const VALID_MODELS = [
 	"tiny",
@@ -12,7 +12,10 @@ export const VALID_MODELS = [
 	"small.en",
 	"medium",
 	"medium.en",
-	"large",
+	"large-v1",
+	"large-v2",
+	"large-v3",
+	"large-v3-turbo",
 ] as const;
 
 export type WhisperModel = (typeof VALID_MODELS)[number];
@@ -83,7 +86,12 @@ export const mockWhisperOutput = {
 			offsets: { from: 0, to: 500 },
 			text: " Hello",
 			tokens: [
-				{ id: 1, text: " Hello", timestamps: { from: "00:00:00.000", to: "00:00:00.500" }, p: 0.95 },
+				{
+					id: 1,
+					text: " Hello",
+					timestamps: { from: "00:00:00.000", to: "00:00:00.500" },
+					p: 0.95,
+				},
 			],
 		},
 		{
@@ -91,7 +99,12 @@ export const mockWhisperOutput = {
 			offsets: { from: 500, to: 1000 },
 			text: " world",
 			tokens: [
-				{ id: 2, text: " world", timestamps: { from: "00:00:00.500", to: "00:00:01.000" }, p: 0.92 },
+				{
+					id: 2,
+					text: " world",
+					timestamps: { from: "00:00:00.500", to: "00:00:01.000" },
+					p: 0.92,
+				},
 			],
 		},
 		{
@@ -99,10 +112,30 @@ export const mockWhisperOutput = {
 			offsets: { from: 1200, to: 2500 },
 			text: " this is a test",
 			tokens: [
-				{ id: 3, text: " this", timestamps: { from: "00:00:01.200", to: "00:00:01.600" }, p: 0.88 },
-				{ id: 4, text: " is", timestamps: { from: "00:00:01.600", to: "00:00:01.900" }, p: 0.97 },
-				{ id: 5, text: " a", timestamps: { from: "00:00:01.900", to: "00:00:02.100" }, p: 0.99 },
-				{ id: 6, text: " test", timestamps: { from: "00:00:02.100", to: "00:00:02.500" }, p: 0.91 },
+				{
+					id: 3,
+					text: " this",
+					timestamps: { from: "00:00:01.200", to: "00:00:01.600" },
+					p: 0.88,
+				},
+				{
+					id: 4,
+					text: " is",
+					timestamps: { from: "00:00:01.600", to: "00:00:01.900" },
+					p: 0.97,
+				},
+				{
+					id: 5,
+					text: " a",
+					timestamps: { from: "00:00:01.900", to: "00:00:02.100" },
+					p: 0.99,
+				},
+				{
+					id: 6,
+					text: " test",
+					timestamps: { from: "00:00:02.100", to: "00:00:02.500" },
+					p: 0.91,
+				},
 			],
 		},
 		{
@@ -110,8 +143,18 @@ export const mockWhisperOutput = {
 			offsets: { from: 3000, to: 4000 },
 			text: " of captions",
 			tokens: [
-				{ id: 7, text: " of", timestamps: { from: "00:00:03.000", to: "00:00:03.300" }, p: 0.93 },
-				{ id: 8, text: " captions", timestamps: { from: "00:00:03.300", to: "00:00:04.000" }, p: 0.89 },
+				{
+					id: 7,
+					text: " of",
+					timestamps: { from: "00:00:03.000", to: "00:00:03.300" },
+					p: 0.93,
+				},
+				{
+					id: 8,
+					text: " captions",
+					timestamps: { from: "00:00:03.300", to: "00:00:04.000" },
+					p: 0.89,
+				},
 			],
 		},
 	],

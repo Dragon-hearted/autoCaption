@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { createTikTokStyleCaptions } from "@remotion/captions";
+import { describe, expect, it } from "vitest";
 import { CaptionStyleSchema } from "../src/config";
 import { mockCaptions } from "./setup";
 

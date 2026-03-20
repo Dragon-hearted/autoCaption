@@ -1,7 +1,11 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
-  "organizeImports": {
-    "enabled": true
+  "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
@@ -14,6 +18,7 @@
     "indentStyle": "tab"
   },
   "files": {
-    "ignore": ["node_modules", "dist", "whisper.cpp"]
+    "includes": ["src/**", "tests/**"],
+    "experimentalScannerIgnores": ["node_modules/**", "dist/**", "whisper.cpp/**"]
   }
 }

@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { getOutputPath, renderVideo, RenderOptionsSchema } from "../src/render";
+import { describe, expect, it } from "vitest";
+import { getOutputPath, RenderOptionsSchema, renderVideo } from "../src/render";
 
 describe("getOutputPath", () => {
 	it("should generate default output path from input path", () => {
