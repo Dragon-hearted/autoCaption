@@ -43,9 +43,10 @@ export async function renderVideo(options: RenderOptions): Promise<string> {
 	});
 
 	const inputProps = {
-		videoSrc: parsed.inputPath,
-		captionsPath:
-			parsed.captionsJsonPath ?? parsed.inputPath.replace(/\.[^.]+$/, ".json"),
+		videoSrc: path.basename(parsed.inputPath),
+		captionsPath: parsed.captionsJsonPath
+			? path.basename(parsed.captionsJsonPath)
+			: path.basename(parsed.inputPath).replace(/\.[^.]+$/, ".json"),
 		...(parsed.style ? { style: parsed.style } : {}),
 	};
 
