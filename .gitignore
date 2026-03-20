@@ -1,0 +1,8 @@
+node_modules/
+dist/
+whisper.cpp/
+*.mp4
+*.wav
+*.webm
+.DS_Store
+logs/

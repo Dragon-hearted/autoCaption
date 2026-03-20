@@ -1,0 +1,35 @@
+{
+  "name": "autocaption",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/compositions/Root.tsx",
+    "render": "bun run src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/ tests/",
+    "format": "biome format --write src/ tests/"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@remotion/bundler": "^4.0.438",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "@remotion/captions": "^4.0.438",
+    "@remotion/cli": "^4.0.438",
+    "@remotion/google-fonts": "^4.0.438",
+    "@remotion/install-whisper-cpp": "^4.0.438",
+    "@remotion/renderer": "^4.0.438",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.438",
+    "zod": "^4.3.6"
+  }
+}
