@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -46,9 +46,14 @@ export function extractAudio(videoPath: string, outputPath: string): void {
 	if (!fs.existsSync(videoPath)) {
 		throw new Error(`Video file not found: ${videoPath}`);
 	}
-	execSync(
-		`ffmpeg -i "${videoPath}" -ar 16000 -ac 1 -c:a pcm_s16le "${outputPath}" -y`,
-	);
+	execFileSync("ffmpeg", [
+		"-i", videoPath,
+		"-ar", "16000",
+		"-ac", "1",
+		"-c:a", "pcm_s16le",
+		outputPath,
+		"-y",
+	]);
 }
 
 interface WhisperSegment {
