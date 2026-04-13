@@ -44,16 +44,7 @@
 
 ![Pipeline](images/pipeline.svg)
 
-autoCaption processes data through a multi-stage pipeline:
-
-```mermaid
-flowchart LR
-    autoCaption_stage_0[transcription]
-    autoCaption_stage_1[caption-styling]
-    autoCaption_stage_0 --> autoCaption_stage_1
-    autoCaption_stage_2[rendering]
-    autoCaption_stage_1 --> autoCaption_stage_2
-```
+autoCaption processes data through a multi-stage pipeline.
 
 ---
 
