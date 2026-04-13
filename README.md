@@ -1,113 +1,172 @@
-# autoCaption
+<div align="center">
 
-Automatically transcribe and render TikTok-style captions onto videos using Whisper.cpp and Remotion.
+# 🎬 autoCaption
 
-## What It Does
+### Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video
 
-1. Transcribes speech from a video file using [whisper.cpp](https://github.com/ggerganov/whisper.cpp)
-2. Generates word-level timed captions
-3. Renders captions directly onto the video with customizable styling (highlight color, font size, position)
-4. Outputs a new video file with burned-in captions
+![Status](https://img.shields.io/badge/Status-active-brightgreen)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=000)
+![Remotion](https://img.shields.io/badge/Remotion-4-0B84F3?logo=remotion&logoColor=white)
+[![Bun](https://img.shields.io/badge/Bun-Runtime-f9f1e1?logo=bun&logoColor=000)](https://bun.sh/)
 
-## Prerequisites
+</div>
 
-- [Bun](https://bun.sh) (v1.0+)
-- [FFmpeg](https://ffmpeg.org) (for audio extraction)
-- Disk space for Whisper models (~75MB for tiny, ~1.5GB for large)
+---
 
-## Installation
+## 📑 Table of Contents
+
+- [✨ Features](#features)
+- [🏗 Architecture](#architecture)
+- [🛠 Tech Stack](#tech-stack)
+- [🚀 Getting Started](#getting-started)
+- [💻 Development](#development)
+- [📂 Project Structure](#project-structure)
+- [🤝 Contributing](#contributing)
+- [📄 License](#license)
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| **video-captioning** | Core task type |
+| **transcription** | Core task type |
+| **subtitle-generation** | Core task type |
+| **video-file Input** | Supported input type |
+| **captioned-video Output** | Supported output type |
+| **captions-json Output** | Supported output type |
+
+---
+
+## 🏗 Architecture
+
+autoCaption processes data through a multi-stage pipeline:
+
+```mermaid
+flowchart LR
+    autoCaption_stage_0[transcription]
+    autoCaption_stage_1[caption-styling]
+    autoCaption_stage_0 --> autoCaption_stage_1
+    autoCaption_stage_2[rendering]
+    autoCaption_stage_1 --> autoCaption_stage_2
+```
+
+---
+
+## 🛠 Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **@remotion/cli 4** | Remotion CLI |
+| **React 19** | UI framework |
+| **React-dom 19** | React DOM renderer |
+| **Remotion 4** | Programmatic video rendering |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **TypeScript 5.9** | Type safety |
+| **Bun** | JavaScript runtime & package manager |
+| **Zod 4** | Schema validation |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [**Bun**](https://bun.sh/) v1.0+ — `curl -fsSL https://bun.sh/install | bash`
+
+### Install
 
 ```bash
+cd systems/autoCaption
 bun install
 ```
 
-Whisper.cpp and the selected model are downloaded automatically on first run.
-
-## Usage
+### Run
 
 ```bash
-# Basic usage — transcribe and render captions
-bun run src/cli.ts video.mp4
-
-# Specify output path
-bun run src/cli.ts video.mp4 --output captioned.mp4
-
-# Use a different Whisper model
-bun run src/cli.ts video.mp4 --model base.en
-
-# Generate captions JSON only (no video render)
-bun run src/cli.ts video.mp4 --srt-only
-
-# Keep captions JSON after rendering
-bun run src/cli.ts video.mp4 --keep-captions
-
-# Customize caption appearance
-bun run src/cli.ts video.mp4 \
-  --font-size 100 \
-  --position top \
-  --highlight-color "#FF0000"
+bun run systems/autoCaption/src/cli.ts
 ```
 
-### Options
+---
 
-| Flag | Short | Default | Description |
-|------|-------|---------|-------------|
-| `--output <path>` | `-o` | `<input>_captioned.mp4` | Output video path |
-| `--model <model>` | `-m` | `medium.en` | Whisper model to use |
-| `--srt-only` | | `false` | Generate captions only, skip render |
-| `--keep-captions` | | `false` | Keep captions JSON after render |
-| `--font-size <n>` | | `80` | Caption font size |
-| `--position <pos>` | | `bottom` | Caption position: `top`, `center`, `bottom` |
-| `--highlight-color <hex>` | | `#39E508` | Active word highlight color |
-| `--help` | `-h` | | Show help |
+## 💻 Development
 
-### Available Models
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start development mode |
+| `bun run build` | Build for production |
+| `bun test` | Run tests |
+| `bun run lint` | Check code quality |
 
-`tiny`, `tiny.en`, `base`, `base.en`, `small`, `small.en`, `medium`, `medium.en`, `large-v1`, `large-v2`, `large-v3`, `large-v3-turbo`
+---
 
-English-only models (`.en` suffix) are faster and more accurate for English content.
-
-## Development
-
-```bash
-just test          # Run tests
-just test-watch    # Run tests in watch mode
-just lint          # Lint code
-just typecheck     # Type check
-just format        # Format code
-just dev           # Open Remotion Studio
-```
-
-## Project Structure
+## 📂 Project Structure
 
 ```
-src/
-  cli.ts              # CLI entry point and arg parsing
-  transcribe.ts       # Whisper.cpp transcription pipeline
-  render.ts           # Remotion programmatic renderer
-  config.ts           # Caption style schema (Zod)
-  compositions/
-    Root.tsx           # Remotion root composition
-    CaptionedVideo.tsx # Video + caption overlay composition
-  captions/
-    CaptionOverlay.tsx # TikTok-style caption page sequencer
-    CaptionPage.tsx    # Single caption page renderer
-tests/
-  setup.ts            # Test fixtures and helpers
-  cli.test.ts         # CLI and integration tests
-  transcribe.test.ts  # Transcription pipeline tests
-  captions.test.ts    # Caption processing tests
-  render.test.ts      # Render pipeline tests
+autoCaption/
+├── README.md
+├── biome.json
+├── justfile
+├── logs
+│   ├── 4615ae11-525f-484c-9da6-0c6f0a1493ff
+│   │   ├── chat.json
+│   │   ├── notification.json
+│   │   ├── post_tool_use.json
+│   │   ├── post_tool_use_failure.json
+│   │   ├── pre_tool_use.json
+│   │   └── stop.json
+│   └── session_end.json
+├── package.json
+├── remotion.config.ts
+├── src
+│   ├── captions
+│   │   ├── CaptionOverlay.tsx
+│   │   └── CaptionPage.tsx
+│   ├── cli.ts
+│   ├── compositions
+│   │   ├── CaptionedVideo.tsx
+│   │   └── Root.tsx
+│   ├── config.ts
+│   ├── render.ts
+│   └── transcribe.ts
+├── tests
+│   ├── captions.test.ts
+│   ├── cli.test.ts
+│   ├── render.test.ts
+│   ├── setup.ts
+│   └── transcribe.test.ts
+└── tsconfig.json
 ```
 
-## Roadmap
+---
 
-- Font selection via Google Fonts
-- Animation presets (typewriter, fade-in, slide-up)
-- Word highlight effects (background, underline, scale)
-- Caption templates (TikTok, YouTube, professional, minimal)
-- Custom positioning with pixel offsets
-- Shadow/outline effects
-- SRT/VTT file export
-- Batch processing (multiple videos)
-- Language auto-detection and translation
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make your changes and ensure tests pass
+4. Commit your changes and open a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<div align="center">
+
+**Built with** 🧡 **using Bun, React, Remotion, TypeScript**
+
+</div>
