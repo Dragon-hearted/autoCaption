@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎬 autoCaption
+![autoCaption](images/hero.svg)
 
 ### Automated video captioning system using Whisper.cpp for transcription and Remotion for rendering TikTok-style word-highlighted captions onto vertical video
 
@@ -41,6 +41,8 @@
 ---
 
 ## 🏗 Architecture
+
+![Pipeline](images/pipeline.svg)
 
 autoCaption processes data through a multi-stage pipeline:
 
@@ -114,6 +116,9 @@ bun run systems/autoCaption/src/cli.ts
 autoCaption/
 ├── README.md
 ├── biome.json
+├── images
+│   ├── hero.svg
+│   └── pipeline.svg
 ├── justfile
 ├── logs
 │   ├── 4615ae11-525f-484c-9da6-0c6f0a1493ff
