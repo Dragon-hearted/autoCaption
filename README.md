@@ -111,15 +111,6 @@ autoCaption/
 │   ├── hero.svg
 │   └── pipeline.svg
 ├── justfile
-├── logs
-│   ├── 4615ae11-525f-484c-9da6-0c6f0a1493ff
-│   │   ├── chat.json
-│   │   ├── notification.json
-│   │   ├── post_tool_use.json
-│   │   ├── post_tool_use_failure.json
-│   │   ├── pre_tool_use.json
-│   │   └── stop.json
-│   └── session_end.json
 ├── package.json
 ├── remotion.config.ts
 ├── src
