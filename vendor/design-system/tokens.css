@@ -1,0 +1,688 @@
+/* ============================================================
+   Adcelerate Design System — tokens.css
+   Source: adcelerate-design-system/project/colors_and_type.css
+           apps/client/src/styles/themes.css
+   ============================================================ */
+
+/* ---------- Typography ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Archivo+Black&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=Rubik+Mono+One&family=DM+Serif+Display:ital@0;1&family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+  /* Type families */
+  --font-sans:      'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:      'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-display:   'Archivo Black', 'Inter', system-ui, sans-serif;         /* heavy geometric sans for H1 */
+  --font-editorial: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;     /* editorial serif */
+  --font-retro:     'Rubik Mono One', 'Archivo Black', system-ui, sans-serif; /* retro slab-mono display */
+  --font-hero:      'DM Serif Display', 'IBM Plex Serif', Georgia, serif;    /* high-contrast serif */
+  --font-pixel:     'Press Start 2P', 'VT323', monospace;                   /* 8-bit arcade */
+  --font-crt:       'VT323', 'Press Start 2P', monospace;                   /* softer CRT pixel */
+
+  /* Type scale (matches Tailwind defaults used throughout the client) */
+  --text-xs:   0.75rem;     /* 12px — badges, meta, timestamps */
+  --text-sm:   0.875rem;    /* 14px — body small, buttons */
+  --text-base: 1rem;        /* 16px — body */
+  --text-lg:   1.125rem;    /* 18px — header title, emphasized body */
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.4;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+
+  /* ---------- Brand accents (paper palette) ---------- */
+  --brand-oxblood:   #8B2A1D;   /* primary mark + CTAs */
+  --brand-petrol:    #1E5A7A;   /* info / secondary accent */
+  --brand-amber:     #B45309;   /* permission / warning */
+  --brand-green:     #0F5C3E;   /* success */
+  --brand-cocoa:     #5A4632;   /* neutral emphasis */
+  --brand-ink:       #1A1714;   /* text on paper */
+  --brand-paper:     #EEE6D4;   /* default surface */
+  --brand-paper-hi:  #F5EEDC;   /* raised / highlight */
+  --brand-paper-sh:  #E6DCC6;   /* recessed / shadow */
+  --brand-muted:     #6B5F4F;   /* meta text */
+
+  /* ---------- App-hash palette (deterministic per source_app) ---------- */
+  /* Namespace: --ds-app-hash-* to replace indigo-500 hardcoded literals   */
+  --ds-app-hash-oxblood:    #7A2519;
+  --ds-app-hash-petrol:     #1E5A7A;
+  --ds-app-hash-amber:      #B56A0A;
+  --ds-app-hash-forest:     #2D5E45;
+  --ds-app-hash-cocoa:      #5C4A38;
+  --ds-app-hash-slate-blue: #3E5F7D;
+  --ds-app-hash-terracotta: #94431E;
+  --ds-app-hash-sage:       #3F6852;
+  --ds-app-hash-oxblood-2:  #6E2116;
+  --ds-app-hash-umber:      #7A5C2E;
+
+  /* ---------- Radii (tailwind default scale) ---------- */
+  --radius-xs:   2px;
+  --radius-sm:   4px;
+  --radius-md:   6px;     /* buttons, badges */
+  --radius-lg:   8px;     /* cards, panels */
+  --radius-xl:   12px;    /* modals */
+  --radius-full: 9999px;
+
+  /* ---------- Spacing (matches tailwind scale — 4px base) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
+
+/* ============================================================
+   :root defaults — paper theme IS the brand default.
+   ============================================================ */
+:root {
+  /* Primary */
+  --theme-primary:        #8B2A1D;  /* oxblood */
+  --theme-primary-hover:  #6E2116;
+  --theme-primary-light:  rgba(139, 42, 29, 0.12);
+  --theme-primary-dark:   #5A1B12;
+
+  /* Surfaces */
+  --theme-bg-primary:     #EEE6D4;  /* paper */
+  --theme-bg-secondary:   #F5EEDC;  /* paper highlight */
+  --theme-bg-tertiary:    #E6DCC6;  /* paper shadow */
+  --theme-bg-quaternary:  #D4C9B0;
+
+  /* Text */
+  --theme-text-primary:    #1A1714;
+  --theme-text-secondary:  #2A241E;
+  --theme-text-tertiary:   #6B5F4F;
+  --theme-text-quaternary: #8A7C69;
+
+  /* Borders */
+  --theme-border-primary:   rgba(26, 23, 20, 0.3);
+  --theme-border-secondary: rgba(26, 23, 20, 0.45);
+  --theme-border-tertiary:  rgba(26, 23, 20, 0.6);
+
+  /* Semantic accents */
+  --theme-accent-success: #0F5C3E;  /* deep green */
+  --theme-accent-warning: #B45309;  /* amber */
+  --theme-accent-error:   #8B2A1D;  /* oxblood */
+  --theme-accent-info:    #1E5A7A;  /* petrol */
+
+  /* Shadows */
+  --theme-shadow:    rgba(26, 23, 20, 0.15);
+  --theme-shadow-lg: rgba(26, 23, 20, 0.35);
+
+  /* Interactive states */
+  --theme-hover-bg:   rgba(26, 23, 20, 0.04);
+  --theme-active-bg:  rgba(26, 23, 20, 0.08);
+  --theme-focus-ring: #8B2A1D;
+
+  /* Motion */
+  --theme-transition:      all 0.2s ease-in-out;
+  --theme-transition-fast: all 0.1s ease-in-out;
+}
+
+/* ============================================================
+   Paper — explicit class form (same tokens as :root, for composability).
+   NOTE: "light" is renamed to "paper". No .theme-light exists here.
+         Dashboard localStorage migration maps "light" → "paper".
+   ============================================================ */
+.theme-paper {
+  --theme-primary:        #8B2A1D;
+  --theme-primary-hover:  #6E2116;
+  --theme-primary-light:  rgba(139, 42, 29, 0.12);
+  --theme-primary-dark:   #5A1B12;
+
+  --theme-bg-primary:     #EEE6D4;
+  --theme-bg-secondary:   #F5EEDC;
+  --theme-bg-tertiary:    #E6DCC6;
+  --theme-bg-quaternary:  #D4C9B0;
+
+  --theme-text-primary:    #1A1714;
+  --theme-text-secondary:  #2A241E;
+  --theme-text-tertiary:   #6B5F4F;
+  --theme-text-quaternary: #8A7C69;
+
+  --theme-border-primary:   rgba(26, 23, 20, 0.3);
+  --theme-border-secondary: rgba(26, 23, 20, 0.45);
+  --theme-border-tertiary:  rgba(26, 23, 20, 0.6);
+
+  --theme-accent-success: #0F5C3E;
+  --theme-accent-warning: #B45309;
+  --theme-accent-error:   #8B2A1D;
+  --theme-accent-info:    #1E5A7A;
+
+  --theme-shadow:    rgba(26, 23, 20, 0.15);
+  --theme-shadow-lg: rgba(26, 23, 20, 0.35);
+
+  --theme-hover-bg:   rgba(26, 23, 20, 0.04);
+  --theme-active-bg:  rgba(26, 23, 20, 0.08);
+  --theme-focus-ring: #8B2A1D;
+}
+
+/* ============================================================
+   Dark — primary working surface for the dashboard
+   ============================================================ */
+.theme-dark {
+  --theme-primary:        #60a5fa;
+  --theme-primary-hover:  #3b82f6;
+  --theme-primary-light:  #1e3a8a;
+  --theme-primary-dark:   #1d4ed8;
+
+  --theme-bg-primary:     #111827;
+  --theme-bg-secondary:   #1f2937;
+  --theme-bg-tertiary:    #374151;
+  --theme-bg-quaternary:  #4b5563;
+
+  --theme-text-primary:    #f9fafb;
+  --theme-text-secondary:  #e5e7eb;
+  --theme-text-tertiary:   #d1d5db;
+  --theme-text-quaternary: #9ca3af;
+
+  --theme-border-primary:   #374151;
+  --theme-border-secondary: #4b5563;
+  --theme-border-tertiary:  #6b7280;
+
+  --theme-accent-success: #34d399;
+  --theme-accent-warning: #fbbf24;
+  --theme-accent-error:   #f87171;
+  --theme-accent-info:    #60a5fa;
+
+  --theme-shadow:    rgba(0, 0, 0, 0.5);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.75);
+
+  --theme-hover-bg:   rgba(255, 255, 255, 0.05);
+  --theme-active-bg:  rgba(255, 255, 255, 0.1);
+  --theme-focus-ring: #60a5fa;
+}
+
+/* ============================================================
+   Midnight Purple — brand-forward variant matching hero.svg glow
+   ============================================================ */
+.theme-midnight-purple {
+  --theme-primary:        #a78bfa;
+  --theme-primary-hover:  #c4b5fd;
+  --theme-primary-light:  #2e1065;
+  --theme-primary-dark:   #6d28d9;
+
+  --theme-bg-primary:     #0f0a1a;
+  --theme-bg-secondary:   #1a1333;
+  --theme-bg-tertiary:    #2d1b4e;
+  --theme-bg-quaternary:  #3f2766;
+
+  --theme-text-primary:    #f3e8ff;
+  --theme-text-secondary:  #e9d5ff;
+  --theme-text-tertiary:   #d8b4fe;
+  --theme-text-quaternary: #c084fc;
+
+  --theme-border-primary:   #6d28d9;
+  --theme-border-secondary: #7e22ce;
+  --theme-border-tertiary:  #a855f7;
+
+  --theme-accent-success: #34d399;
+  --theme-accent-warning: #fbbf24;
+  --theme-accent-error:   #f472b6;
+  --theme-accent-info:    #a78bfa;
+
+  --theme-shadow:    rgba(0, 0, 0, 0.6);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.8);
+
+  --theme-hover-bg:   rgba(167, 139, 250, 0.1);
+  --theme-active-bg:  rgba(167, 139, 250, 0.2);
+  --theme-focus-ring: #a78bfa;
+}
+
+/* ============================================================
+   Modern theme — sleek blues and grays
+   Source: apps/client/src/styles/themes.css
+   ============================================================ */
+.theme-modern {
+  --theme-primary:        #0ea5e9;
+  --theme-primary-hover:  #0284c7;
+  --theme-primary-light:  #e0f2fe;
+  --theme-primary-dark:   #0c4a6e;
+
+  --theme-bg-primary:     #f8fafc;
+  --theme-bg-secondary:   #f1f5f9;
+  --theme-bg-tertiary:    #e2e8f0;
+  --theme-bg-quaternary:  #cbd5e1;
+
+  --theme-text-primary:    #0f172a;
+  --theme-text-secondary:  #334155;
+  --theme-text-tertiary:   #64748b;
+  --theme-text-quaternary: #94a3b8;
+
+  --theme-border-primary:   #e2e8f0;
+  --theme-border-secondary: #cbd5e1;
+  --theme-border-tertiary:  #94a3b8;
+
+  --theme-accent-success: #059669;
+  --theme-accent-warning: #d97706;
+  --theme-accent-error:   #dc2626;
+  --theme-accent-info:    #0ea5e9;
+
+  --theme-shadow:    rgba(15, 23, 42, 0.1);
+  --theme-shadow-lg: rgba(15, 23, 42, 0.25);
+
+  --theme-hover-bg:   rgba(15, 23, 42, 0.05);
+  --theme-active-bg:  rgba(15, 23, 42, 0.1);
+  --theme-focus-ring: #0ea5e9;
+}
+
+/* ============================================================
+   Earth theme — natural warm earth tones
+   ============================================================ */
+.theme-earth {
+  --theme-primary:        #8b4513;
+  --theme-primary-hover:  #a0522d;
+  --theme-primary-light:  #deb887;
+  --theme-primary-dark:   #654321;
+
+  --theme-bg-primary:     #f5f5dc;
+  --theme-bg-secondary:   #f0e68c;
+  --theme-bg-tertiary:    #daa520;
+  --theme-bg-quaternary:  #cd853f;
+
+  --theme-text-primary:    #2f1b14;
+  --theme-text-secondary:  #5d4e37;
+  --theme-text-tertiary:   #8b4513;
+  --theme-text-quaternary: #a0522d;
+
+  --theme-border-primary:   #deb887;
+  --theme-border-secondary: #d2b48c;
+  --theme-border-tertiary:  #cd853f;
+
+  --theme-accent-success: #228b22;
+  --theme-accent-warning: #ff8c00;
+  --theme-accent-error:   #dc143c;
+  --theme-accent-info:    #4682b4;
+
+  --theme-shadow:    rgba(139, 69, 19, 0.15);
+  --theme-shadow-lg: rgba(139, 69, 19, 0.3);
+
+  --theme-hover-bg:   rgba(139, 69, 19, 0.08);
+  --theme-active-bg:  rgba(139, 69, 19, 0.15);
+  --theme-focus-ring: #8b4513;
+}
+
+/* ============================================================
+   Glass theme — translucent with subtle colors
+   ============================================================ */
+.theme-glass {
+  --theme-primary:        #8b5cf6;
+  --theme-primary-hover:  #7c3aed;
+  --theme-primary-light:  #f3e8ff;
+  --theme-primary-dark:   #581c87;
+
+  --theme-bg-primary:     rgba(255, 255, 255, 0.95);
+  --theme-bg-secondary:   rgba(248, 250, 252, 0.9);
+  --theme-bg-tertiary:    rgba(241, 245, 249, 0.85);
+  --theme-bg-quaternary:  rgba(226, 232, 240, 0.8);
+
+  --theme-text-primary:    #1e1b4b;
+  --theme-text-secondary:  #3730a3;
+  --theme-text-tertiary:   #6366f1;
+  --theme-text-quaternary: #8b5cf6;
+
+  --theme-border-primary:   rgba(226, 232, 240, 0.6);
+  --theme-border-secondary: rgba(203, 213, 225, 0.7);
+  --theme-border-tertiary:  rgba(148, 163, 184, 0.8);
+
+  --theme-accent-success: #10b981;
+  --theme-accent-warning: #f59e0b;
+  --theme-accent-error:   #ef4444;
+  --theme-accent-info:    #8b5cf6;
+
+  --theme-shadow:    rgba(139, 92, 246, 0.1);
+  --theme-shadow-lg: rgba(139, 92, 246, 0.25);
+
+  --theme-hover-bg:   rgba(139, 92, 246, 0.05);
+  --theme-active-bg:  rgba(139, 92, 246, 0.1);
+  --theme-focus-ring: #8b5cf6;
+}
+
+/* Backdrop filter support for glass theme */
+.theme-glass .backdrop-blur {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ============================================================
+   High Contrast theme — for accessibility
+   ============================================================ */
+.theme-high-contrast {
+  --theme-primary:        #000000;
+  --theme-primary-hover:  #333333;
+  --theme-primary-light:  #f0f0f0;
+  --theme-primary-dark:   #000000;
+
+  --theme-bg-primary:     #ffffff;
+  --theme-bg-secondary:   #f0f0f0;
+  --theme-bg-tertiary:    #e0e0e0;
+  --theme-bg-quaternary:  #d0d0d0;
+
+  --theme-text-primary:    #000000;
+  --theme-text-secondary:  #000000;
+  --theme-text-tertiary:   #333333;
+  --theme-text-quaternary: #666666;
+
+  --theme-border-primary:   #000000;
+  --theme-border-secondary: #333333;
+  --theme-border-tertiary:  #666666;
+
+  --theme-accent-success: #008000;
+  --theme-accent-warning: #ff8c00;
+  --theme-accent-error:   #ff0000;
+  --theme-accent-info:    #0000ff;
+
+  --theme-shadow:    rgba(0, 0, 0, 0.3);
+  --theme-shadow-lg: rgba(0, 0, 0, 0.6);
+
+  --theme-hover-bg:   rgba(0, 0, 0, 0.1);
+  --theme-active-bg:  rgba(0, 0, 0, 0.2);
+  --theme-focus-ring: #000000;
+}
+
+/* ============================================================
+   Dark Blue theme — deep blue with navy accents
+   ============================================================ */
+.theme-dark-blue {
+  --theme-primary:        #0099ff;
+  --theme-primary-hover:  #0077cc;
+  --theme-primary-light:  #33aaff;
+  --theme-primary-dark:   #0066cc;
+
+  --theme-bg-primary:     #000033;
+  --theme-bg-secondary:   #000066;
+  --theme-bg-tertiary:    #000099;
+  --theme-bg-quaternary:  #0000cc;
+
+  --theme-text-primary:    #e6f2ff;
+  --theme-text-secondary:  #ccddff;
+  --theme-text-tertiary:   #99bbff;
+  --theme-text-quaternary: #6699ff;
+
+  --theme-border-primary:   #003366;
+  --theme-border-secondary: #004499;
+  --theme-border-tertiary:  #0066cc;
+
+  --theme-accent-success: #00ff88;
+  --theme-accent-warning: #ffaa00;
+  --theme-accent-error:   #ff3366;
+  --theme-accent-info:    #0099ff;
+
+  --theme-shadow:    rgba(0, 0, 51, 0.7);
+  --theme-shadow-lg: rgba(0, 0, 51, 0.9);
+
+  --theme-hover-bg:   rgba(0, 153, 255, 0.15);
+  --theme-active-bg:  rgba(0, 153, 255, 0.25);
+  --theme-focus-ring: #0099ff;
+}
+
+/* ============================================================
+   Colorblind Friendly theme — high contrast, CVD-safe
+   ============================================================ */
+.theme-colorblind-friendly {
+  --theme-primary:        #993366;
+  --theme-primary-hover:  #663344;
+  --theme-primary-light:  #cc6699;
+  --theme-primary-dark:   #661144;
+
+  --theme-bg-primary:     #ffffcc;
+  --theme-bg-secondary:   #ffcc99;
+  --theme-bg-tertiary:    #ffaa88;
+  --theme-bg-quaternary:  #ff9966;
+
+  --theme-text-primary:    #331122;
+  --theme-text-secondary:  #442233;
+  --theme-text-tertiary:   #553344;
+  --theme-text-quaternary: #664455;
+
+  --theme-border-primary:   #cc9966;
+  --theme-border-secondary: #996633;
+  --theme-border-tertiary:  #663300;
+
+  --theme-accent-success: #117733;
+  --theme-accent-warning: #cc6633;
+  --theme-accent-error:   #882233;
+  --theme-accent-info:    #993366;
+
+  --theme-shadow:    rgba(51, 17, 34, 0.15);
+  --theme-shadow-lg: rgba(51, 17, 34, 0.3);
+
+  --theme-hover-bg:   rgba(153, 51, 102, 0.08);
+  --theme-active-bg:  rgba(153, 51, 102, 0.15);
+  --theme-focus-ring: #993366;
+}
+
+/* ============================================================
+   Ocean theme — bright tropical ocean with turquoise and coral
+   ============================================================ */
+.theme-ocean {
+  --theme-primary:        #0088cc;
+  --theme-primary-hover:  #006699;
+  --theme-primary-light:  #33aadd;
+  --theme-primary-dark:   #005588;
+
+  --theme-bg-primary:     #cceeff;
+  --theme-bg-secondary:   #99ddff;
+  --theme-bg-tertiary:    #66ccff;
+  --theme-bg-quaternary:  #33bbff;
+
+  --theme-text-primary:    #003344;
+  --theme-text-secondary:  #004455;
+  --theme-text-tertiary:   #005566;
+  --theme-text-quaternary: #006677;
+
+  --theme-border-primary:   #66bbdd;
+  --theme-border-secondary: #4499cc;
+  --theme-border-tertiary:  #2288bb;
+
+  --theme-accent-success: #00cc66;
+  --theme-accent-warning: #ff9933;
+  --theme-accent-error:   #ff3333;
+  --theme-accent-info:    #0088cc;
+
+  --theme-shadow:    rgba(0, 136, 204, 0.15);
+  --theme-shadow-lg: rgba(0, 136, 204, 0.3);
+
+  --theme-hover-bg:   rgba(0, 136, 204, 0.08);
+  --theme-active-bg:  rgba(0, 136, 204, 0.15);
+  --theme-focus-ring: #0088cc;
+}
+
+/* ============================================================
+   Sunset Orange theme — warm oranges and neutral tones
+   ============================================================ */
+.theme-sunset-orange {
+  --theme-primary:        #ea580c;
+  --theme-primary-hover:  #c2410c;
+  --theme-primary-light:  #fed7aa;
+  --theme-primary-dark:   #9a3412;
+
+  --theme-bg-primary:     #f5ede4;
+  --theme-bg-secondary:   #fce4d6;
+  --theme-bg-tertiary:    #fbdcc3;
+  --theme-bg-quaternary:  #f8d4af;
+
+  --theme-text-primary:    #1f1208;
+  --theme-text-secondary:  #3e2109;
+  --theme-text-tertiary:   #5d2d0e;
+  --theme-text-quaternary: #7c3a14;
+
+  --theme-border-primary:   #fbdcc3;
+  --theme-border-secondary: #f8c9a8;
+  --theme-border-tertiary:  #f5a842;
+
+  --theme-accent-success: #16a34a;
+  --theme-accent-warning: #f59e0b;
+  --theme-accent-error:   #dc2626;
+  --theme-accent-info:    #ea580c;
+
+  --theme-shadow:    rgba(218, 74, 13, 0.15);
+  --theme-shadow-lg: rgba(218, 74, 13, 0.3);
+
+  --theme-hover-bg:   rgba(234, 88, 12, 0.08);
+  --theme-active-bg:  rgba(234, 88, 12, 0.15);
+  --theme-focus-ring: #ea580c;
+}
+
+/* ============================================================
+   Mint Fresh theme — cool mint greens with slate neutrals
+   ============================================================ */
+.theme-mint-fresh {
+  --theme-primary:        #0d9488;
+  --theme-primary-hover:  #0f766e;
+  --theme-primary-light:  #ccfbf1;
+  --theme-primary-dark:   #134e4a;
+
+  --theme-bg-primary:     #f0fdfa;
+  --theme-bg-secondary:   #d1fae5;
+  --theme-bg-tertiary:    #a7f3d0;
+  --theme-bg-quaternary:  #7ee8c9;
+
+  --theme-text-primary:    #0d3b36;
+  --theme-text-secondary:  #145352;
+  --theme-text-tertiary:   #1b6b67;
+  --theme-text-quaternary: #2d827d;
+
+  --theme-border-primary:   #a7f3d0;
+  --theme-border-secondary: #7ee8c9;
+  --theme-border-tertiary:  #5eead4;
+
+  --theme-accent-success: #059669;
+  --theme-accent-warning: #d97706;
+  --theme-accent-error:   #dc2626;
+  --theme-accent-info:    #0d9488;
+
+  --theme-shadow:    rgba(13, 148, 136, 0.12);
+  --theme-shadow-lg: rgba(13, 148, 136, 0.25);
+
+  --theme-hover-bg:   rgba(13, 148, 136, 0.08);
+  --theme-active-bg:  rgba(13, 148, 136, 0.15);
+  --theme-focus-ring: #0d9488;
+}
+
+/* ============================================================
+   Utility classes for theme variables
+   ============================================================ */
+.theme-bg-primary    { background-color: var(--theme-bg-primary); }
+.theme-bg-secondary  { background-color: var(--theme-bg-secondary); }
+.theme-bg-tertiary   { background-color: var(--theme-bg-tertiary); }
+.theme-bg-quaternary { background-color: var(--theme-bg-quaternary); }
+
+.theme-text-primary    { color: var(--theme-text-primary); }
+.theme-text-secondary  { color: var(--theme-text-secondary); }
+.theme-text-tertiary   { color: var(--theme-text-tertiary); }
+.theme-text-quaternary { color: var(--theme-text-quaternary); }
+
+.theme-border-primary   { border-color: var(--theme-border-primary); }
+.theme-border-secondary { border-color: var(--theme-border-secondary); }
+.theme-border-tertiary  { border-color: var(--theme-border-tertiary); }
+
+.theme-primary        { color: var(--theme-primary); }
+.theme-primary-bg     { background-color: var(--theme-primary); }
+.theme-primary-border { border-color: var(--theme-primary); }
+
+.theme-accent-success { color: var(--theme-accent-success); }
+.theme-accent-warning { color: var(--theme-accent-warning); }
+.theme-accent-error   { color: var(--theme-accent-error); }
+.theme-accent-info    { color: var(--theme-accent-info); }
+
+.theme-shadow    { box-shadow: 0 1px 3px var(--theme-shadow); }
+.theme-shadow-lg { box-shadow: 0 10px 15px var(--theme-shadow-lg); }
+
+.theme-transition      { transition: var(--theme-transition); }
+.theme-transition-fast { transition: var(--theme-transition-fast); }
+
+/* Focus ring styles */
+.theme-focus:focus {
+  outline: 2px solid var(--theme-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Interactive state styles */
+.theme-hover:hover  { background-color: var(--theme-hover-bg); }
+.theme-active:active { background-color: var(--theme-active-bg); }
+
+/* ============================================================
+   Semantic type classes
+   ============================================================ */
+.ds-h1 {
+  font-family: var(--font-sans);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--theme-text-primary);
+}
+.ds-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--theme-text-primary);
+}
+.ds-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--theme-text-primary);
+}
+.ds-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+  color: var(--theme-text-primary);
+}
+.ds-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: var(--leading-normal);
+  color: var(--theme-text-primary);
+}
+.ds-body-sm {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: var(--leading-normal);
+  color: var(--theme-text-secondary);
+}
+.ds-meta {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: var(--leading-snug);
+  color: var(--theme-text-tertiary);
+}
+.ds-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--theme-text-tertiary);
+}
+.ds-badge {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* Card / panel defaults */
+.ds-card {
+  background: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px var(--theme-shadow);
+}
