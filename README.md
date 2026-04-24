@@ -130,7 +130,10 @@ autoCaption/
 │   ├── render.test.ts
 │   ├── setup.ts
 │   └── transcribe.test.ts
-└── tsconfig.json
+├── tsconfig.json
+└── vendor
+    └── design-system
+        └── tokens.css
 ```
 
 ---
