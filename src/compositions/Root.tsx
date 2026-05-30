@@ -1,5 +1,5 @@
-import { registerRoot, Composition } from "remotion";
 import type React from "react";
+import { Composition, registerRoot } from "remotion";
 import { CaptionedVideo } from "./CaptionedVideo";
 
 const RemotionRoot: React.FC = () => {

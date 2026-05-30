@@ -47,10 +47,14 @@ export function extractAudio(videoPath: string, outputPath: string): void {
 		throw new Error(`Video file not found: ${videoPath}`);
 	}
 	execFileSync("ffmpeg", [
-		"-i", videoPath,
-		"-ar", "16000",
-		"-ac", "1",
-		"-c:a", "pcm_s16le",
+		"-i",
+		videoPath,
+		"-ar",
+		"16000",
+		"-ac",
+		"1",
+		"-c:a",
+		"pcm_s16le",
 		outputPath,
 		"-y",
 	]);
@@ -126,15 +130,7 @@ export async function transcribeVideo(
 
 		const result = spawnSync(
 			mainBinary,
-			[
-				"-m",
-				modelFile,
-				"-f",
-				tempWav,
-				"--output-json-full",
-				"-of",
-				tempJson,
-			],
+			["-m", modelFile, "-f", tempWav, "--output-json-full", "-of", tempJson],
 			{
 				timeout: 300000,
 				stdio: ["pipe", "pipe", "pipe"],

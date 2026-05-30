@@ -50,9 +50,7 @@ describe("captionsToSrt", () => {
 
 	it("should include a timestamp arrow line for every cue", () => {
 		const srt = captionsToSrt(mockCaptions);
-		const arrowLines = srt
-			.split("\n")
-			.filter((l) => l.includes(" --> "));
+		const arrowLines = srt.split("\n").filter((l) => l.includes(" --> "));
 		expect(arrowLines.length).toBeGreaterThan(0);
 		for (const line of arrowLines) {
 			expect(line).toMatch(
@@ -78,9 +76,7 @@ describe("captionsToSrt", () => {
 
 	it("should produce cues whose end is at or after start", () => {
 		const srt = captionsToSrt(mockCaptions);
-		const arrowLines = srt
-			.split("\n")
-			.filter((l) => l.includes(" --> "));
+		const arrowLines = srt.split("\n").filter((l) => l.includes(" --> "));
 		for (const line of arrowLines) {
 			const [start, end] = line.split(" --> ");
 			expect(end >= start).toBe(true);
