@@ -6,6 +6,7 @@ whisper.cpp/
 *.webm
 .DS_Store
 logs/
+.claude/
 .env
 .env.*
 .env.local

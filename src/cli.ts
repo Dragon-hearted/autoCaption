@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getOutputPath, renderVideo } from "./render";
+import { writeSrt } from "./srt";
 import { transcribeVideo, VALID_MODELS, writeCaptionsJson } from "./transcribe";
 
 export interface ParsedArgs {
@@ -23,7 +24,7 @@ Arguments:
 Options:
   -o, --output <path>     Output path (default: <input>_captioned.mp4)
   -m, --model <model>     Whisper model (default: medium.en)
-  --srt-only              Generate SRT only, no render
+  --srt-only              Write an .srt subtitle file only, no render
   --keep-captions         Keep captions JSON after render
   --font-size <size>      Caption font size (default: 80)
   --position <pos>        Caption position: top, center, bottom (default: bottom)
@@ -108,15 +109,26 @@ async function main(): Promise<void> {
 	writeCaptionsJson(captions, captionsJsonPath);
 	console.log(`Captions written to ${captionsJsonPath}`);
 
+	if (args.srtOnly) {
+		const srtPath = getOutputPath(args.videoPath, args.output).replace(
+			/\.[^./\\]+$/,
+			".srt",
+		);
+		writeSrt(captions, srtPath);
+		console.log(`SRT written to ${srtPath}`);
+
+		if (!args.keepCaptions) {
+			fs.unlinkSync(captionsJsonPath);
+		}
+
+		console.log("SRT-only mode — skipping render.");
+		return;
+	}
+
 	const videoBasename = path.basename(args.videoPath);
 	const publicVideoPath = path.join(publicDir, videoBasename);
 	if (!fs.existsSync(publicVideoPath)) {
 		fs.copyFileSync(args.videoPath, publicVideoPath);
-	}
-
-	if (args.srtOnly) {
-		console.log("SRT-only mode — skipping render.");
-		return;
 	}
 
 	const outputPath = getOutputPath(args.videoPath, args.output);
