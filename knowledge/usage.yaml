@@ -1,0 +1,96 @@
+# systems/autoCaption/knowledge/usage.yaml
+# Consumed by readme-engine's usage-collector + usage renderer (Appendix A schema).
+# autoCaption is a local-first CLI: no API keys or credentials are required.
+
+features:
+  - name: "Word-level transcription"
+    description: "Whisper.cpp runs with --output-json-full to emit per-token timestamps; whisperSegmentsToCaptions() projects every token into a Remotion Caption, enabling true per-word timing (falls back to per-segment when token offsets are absent)."
+  - name: "TikTok-style word highlighting"
+    description: "createTikTokStyleCaptions groups tokens into on-screen pages; CaptionPage colors the currently-spoken word with highlightColor (#39E508 default) and inactive words with textColor (#FFFFFF), driven by useCurrentFrame()."
+  - name: "Vertical 1080x1920 H.264 render"
+    description: "The CaptionedVideo Remotion composition burns captions over the original footage and renders MP4/H.264 at 1080x1920 (9:16), 30 fps, JPEG frames; existing output is overwritten (Config.setOverwriteOutput(true))."
+  - name: "Configurable caption style (Zod)"
+    description: "CaptionStyleSchema validates fontSize (80), fontFamily (Inter via @remotion/google-fonts), highlightColor (#39E508), textColor (#FFFFFF), position (top|center|bottom), bold (true), and combineTokensWithinMs (1200) for page grouping."
+  - name: "SRT subtitle export"
+    description: "--srt-only writes a standards-compliant .srt subtitle file (HH:MM:SS,mmm cues grouped the same way the renderer pages them) next to the output and skips the Remotion render entirely."
+  - name: "Captions JSON output"
+    description: "Every run writes public/captions.json (a pretty-printed array of Caption objects); --keep-captions preserves it after render instead of deleting it."
+  - name: "12-model Whisper catalog"
+    description: "Selectable via -m/--model: tiny, tiny.en, base, base.en, small, small.en, medium, medium.en, large-v1, large-v2, large-v3, large-v3-turbo (default medium.en). English-only *.en variants trade multilingual support for English accuracy."
+  - name: "Auto whisper.cpp install + model download"
+    description: "@remotion/install-whisper-cpp compiles whisper.cpp 1.5.5 into ./whisper.cpp and downloads ggml-<model>.bin on first run — no manual build step needed."
+  - name: "ffmpeg audio extraction"
+    description: "extractAudio() invokes ffmpeg to convert the input to 16 kHz mono PCM s16le WAV in the OS temp dir before transcription; the temp WAV is always cleaned up."
+  - name: "Remotion Studio preview"
+    description: "bun run studio (just dev) opens the Remotion Studio for the CaptionedVideo composition to preview/iterate on caption styling interactively."
+  - name: "Local-first / offline"
+    description: "No API keys, gateways, or cloud calls — all transcription and rendering run on-device. Only first-run whisper.cpp/model download needs internet."
+  - name: "Hand-rolled CLI flag parser"
+    description: "parseArgs validates the input file exists and exposes -o/--output, -m/--model, --srt-only, --keep-captions, --font-size, --position, --highlight-color, and -h/--help with clear error messages."
+
+prerequisites:
+  - "Bun v1.0+ — curl -fsSL https://bun.sh/install | bash"
+  - "ffmpeg on PATH — brew install ffmpeg (macOS) / apt install ffmpeg (Linux)"
+  - "A C/C++ toolchain — whisper.cpp 1.5.5 is compiled from source on first run (Xcode Command Line Tools on macOS, build-essential on Linux)"
+  - "Internet access on first run — downloads whisper.cpp source and the selected ggml model (~75 MB for tiny.en up to ~3 GB for large-v3)"
+  - "Free disk space for ./whisper.cpp (compiled binary + model) and ./public (a copy of the input video + captions.json)"
+
+configVars: []
+# autoCaption requires no environment variables or credentials. The justfile sets
+# `set dotenv-load := true`, so an optional .env is loaded if present, but no vars are read.
+
+install:
+  - "cd systems/autoCaption"
+  - "bun install"
+
+usageSteps:
+  - title: "View CLI help and the model catalog"
+    command: "bun run src/cli.ts --help"
+    expected: "Prints usage, all options, and the 12 valid Whisper models. Note: --help exits with code 1 (help text is thrown as an error)."
+  - title: "Caption a video (full pipeline)"
+    command: "bun run src/cli.ts input.mp4"
+    expected: "Transcribes input.mp4, writes public/captions.json, renders input_captioned.mp4 (1080x1920, H.264, 30 fps). First run compiles whisper.cpp and downloads the medium.en model (requires ffmpeg + whisper model — heavy first-run download)."
+  - title: "Export SRT subtitles only (no render)"
+    command: "bun run src/cli.ts input.mp4 --srt-only --keep-captions"
+    expected: "Writes input.srt (and keeps public/captions.json), then exits without rendering. Verified end-to-end on a generated test clip with --model tiny.en: ffmpeg extracted audio, whisper.cpp 1.5.5 compiled + ggml-tiny.en.bin downloaded, 'Found 7 captions', valid .srt cues written (exit 0)."
+  - title: "Pick a Whisper model"
+    command: "bun run src/cli.ts input.mp4 -m large-v3-turbo"
+    expected: "Downloads ggml-large-v3-turbo.bin on first use and transcribes with it (requires whisper model download — ~1.5 GB)."
+  - title: "Customize caption styling"
+    command: 'bun run src/cli.ts input.mp4 --position top --font-size 64 --highlight-color "#FF0066"'
+    expected: "Renders captions anchored to the top, 64 px font, with the spoken word highlighted in #FF0066 (requires ffmpeg + whisper model)."
+  - title: "Set a custom output path"
+    command: "bun run src/cli.ts input.mp4 -o out/final.mp4"
+    expected: "Writes the captioned video to out/final.mp4 instead of the default <input>_captioned.mp4 (requires ffmpeg + whisper model)."
+  - title: "Preview / iterate styling in Remotion Studio"
+    command: "bun run studio"
+    expected: "Opens the Remotion Studio on the CaptionedVideo composition for interactive preview (alias: just dev)."
+  - title: "Run the test suite"
+    command: "bun run test"
+    expected: "Runs vitest: 68 tests pass, 2 skipped across 5 files (captions, cli, render, srt, transcribe)."
+
+commandsReference:
+  - command: "bun run src/cli.ts <video> [options]"
+    description: "Transcribe and render a captioned vertical video (primary entry point)."
+  - command: "-o, --output <path>"
+    description: "Output path (default: <input>_captioned.mp4)."
+  - command: "-m, --model <model>"
+    description: "Whisper model (default: medium.en). One of the 12 in VALID_MODELS."
+  - command: "--srt-only"
+    description: "Write an .srt subtitle file only; skip the Remotion render."
+  - command: "--keep-captions"
+    description: "Keep public/captions.json after the run instead of deleting it."
+  - command: "--font-size <size>"
+    description: "Caption font size in px (default: 80)."
+  - command: "--position <pos>"
+    description: "Caption anchor: top, center, or bottom (default: bottom)."
+  - command: "--highlight-color <hex>"
+    description: "Color of the currently spoken word (default: #39E508)."
+  - command: "-h, --help"
+    description: "Show usage, options, and the valid model list."
+  - command: "bun run studio  (just dev)"
+    description: "Open Remotion Studio to preview the CaptionedVideo composition."
+  - command: "bun run test  (just test)"
+    description: "Run the vitest suite."
+  - command: "bun run lint  /  bun run format  /  bun run typecheck"
+    description: "Biome lint, Biome format-write, and tsc --noEmit checks."
