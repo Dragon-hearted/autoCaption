@@ -1,12 +1,12 @@
 ---
-system: "autocaption"
+system: "auto-editor"
 type: acceptance-criteria
 version: 1
 lastUpdated: "2026-05-26"
 lastUpdatedBy: claude-build
 ---
 
-# autoCaption — Acceptance Criteria
+# AutoEditor — Acceptance Criteria
 
 ## Hard Gates
 

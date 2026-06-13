@@ -1,12 +1,12 @@
 ---
-system: "autocaption"
+system: "auto-editor"
 type: dependencies
 version: 1
 lastUpdated: "2026-05-26"
 lastUpdatedBy: claude-build
 ---
 
-# Dependencies — autoCaption
+# Dependencies — AutoEditor
 
 ## Runtime Dependencies (npm)
 
@@ -45,7 +45,7 @@ lastUpdatedBy: claude-build
 | Network access to Hugging Face / GitHub | required on first run only | Used by `installWhisperCpp` and `downloadWhisperModel` to fetch the binary and model files | First run fails; cached binary + model survive across subsequent offline runs |
 
 ## Working Directory Artifacts
-autoCaption writes into `process.cwd()` rather than a system cache. Operators running it from monorepo automation should expect these to appear and may want to scope CWD per run:
+AutoEditor writes into `process.cwd()` rather than a system cache. Operators running it from monorepo automation should expect these to appear and may want to scope CWD per run:
 
 | Path | Created by | Purpose |
 |------|-----------|---------|
@@ -54,7 +54,7 @@ autoCaption writes into `process.cwd()` rather than a system cache. Operators ru
 | `<input>_captioned<ext>` | `renderMedia` | Default location of the final captioned video, next to the input file |
 
 ## In-Monorepo Relationships
-autoCaption is a standalone git submodule (`https://github.com/Dragon-hearted/autoCaption.git`) registered in the parent `systems.yaml` at `systems/autoCaption`. It has no direct code imports from sibling systems. It does share a Remotion 4 / React 19 / Bun toolchain shape with `systems/scene-board`, which means upgrades to Remotion in one are a useful regression signal for the other but the two repos do not coordinate at build time.
+AutoEditor is a standalone git submodule (`https://github.com/Dragon-hearted/auto-editor.git`) registered in the parent `systems.yaml` at `systems/auto-editor`. It has no direct code imports from sibling systems. It does share a Remotion 4 / React 19 / Bun toolchain shape with `systems/scene-board`, which means upgrades to Remotion in one are a useful regression signal for the other but the two repos do not coordinate at build time.
 
 ## Environment Variables
-None required. autoCaption is configured entirely through CLI flags and Zod-validated defaults; there are no environment-driven knobs in `cli.ts`, `transcribe.ts`, `render.ts`, or `config.ts`.
+None required. AutoEditor is configured entirely through CLI flags and Zod-validated defaults; there are no environment-driven knobs in `cli.ts`, `transcribe.ts`, `render.ts`, or `config.ts`.

@@ -1,4 +1,4 @@
-# autoCaption
+# AutoEditor
 set dotenv-load := true
 
 # List all recipes

@@ -1,12 +1,12 @@
 ---
-system: "autocaption"
+system: "auto-editor"
 type: scope
 version: 1
 lastUpdated: "2026-05-26"
 lastUpdatedBy: claude-build
 ---
 
-# autoCaption — Scope
+# AutoEditor — Scope
 
 ## Description
 CLI-driven word-highlighted caption renderer for short-form vertical video. Whisper.cpp transcribes the source audio into word-level timestamped captions, and a Remotion composition paints TikTok-style overlays back onto the video with per-word color highlighting synced to the spoken word.

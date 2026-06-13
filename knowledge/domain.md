@@ -1,15 +1,15 @@
 ---
-system: "autocaption"
+system: "auto-editor"
 type: domain
 version: 1
 lastUpdated: "2026-05-26"
 lastUpdatedBy: claude-build
 ---
 
-# autoCaption — Domain Knowledge
+# AutoEditor — Domain Knowledge
 
 ## Overview
-autoCaption is a local-first CLI that turns any video into a captioned vertical video. The pipeline runs Whisper.cpp against the extracted audio, converts Whisper's per-token output into Remotion `Caption` objects, and renders a `CaptionedVideo` Remotion composition that overlays TikTok-style per-word highlights on top of the original footage.
+AutoEditor is a local-first CLI that turns any video into a captioned vertical video. The pipeline runs Whisper.cpp against the extracted audio, converts Whisper's per-token output into Remotion `Caption` objects, and renders a `CaptionedVideo` Remotion composition that overlays TikTok-style per-word highlights on top of the original footage.
 
 ## Core Concepts
 
@@ -18,7 +18,7 @@ A single timestamped text unit, conforming to `@remotion/captions`' `Caption` ty
 ```
 { text: string; startMs: number; endMs: number; timestampMs: number; confidence: number | null }
 ```
-autoCaption emits one `Caption` per Whisper *token* when token-level timestamps are available, falling back to one per segment otherwise. This is what unlocks per-word highlighting in the overlay.
+AutoEditor emits one `Caption` per Whisper *token* when token-level timestamps are available, falling back to one per segment otherwise. This is what unlocks per-word highlighting in the overlay.
 
 ### Word-Level Timestamp
 Whisper.cpp invoked with `--output-json-full` produces a `transcription[]` array where each segment carries a `tokens[]` field with `offsets.from` / `offsets.to` in milliseconds. `whisperSegmentsToCaptions()` walks every token, skips empty whitespace, and projects each into a `Caption`. These millisecond offsets become the timing source for the overlay.
@@ -73,7 +73,7 @@ Unless `--keep-captions` was passed, `captions.json` is unlinked after a success
 ## File / Path Conventions
 - `whisper.cpp/` — created in `process.cwd()`; holds the compiled `main` binary and `ggml-<model>.bin` files.
 - `public/` — created in `process.cwd()`; Remotion's static-file root for render. Always contains a copy of the input video (under its original basename) and (during render) `captions.json`.
-- Temp files — written under `os.tmpdir()` with `autocaption_<Date.now()>` prefixes; the WAV is always cleaned up, the JSON is cleaned up on success.
+- Temp files — written under `os.tmpdir()` with `auto-editor_<Date.now()>` prefixes; the WAV is always cleaned up, the JSON is cleaned up on success.
 - Default output — `<input>_captioned<ext>` next to the input video (`getOutputPath`).
 
 ## Output Format

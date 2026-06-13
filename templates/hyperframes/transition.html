@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--
+	Hyperframes template: transition
+	A full-frame wipe + optional label, meant to bridge two clips.
+
+	Timing model:
+	  - Stage carries data-composition-id / data-width / data-height.
+	  - Animated elements carry data-start / data-duration (seconds).
+	  - A PAUSED GSAP timeline is registered at window.__timelines["transition"]
+	    for deterministic per-frame seeking by the Hyperframes engine.
+
+	Parametrization: window.__props = { label, background, color }.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			#stage {
+				position: relative;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+				background: transparent;
+			}
+			.panel {
+				position: absolute;
+				left: 0;
+				width: 100%;
+				height: 50%;
+				background: #0b0e14;
+			}
+			#panel-top {
+				top: 0;
+				transform-origin: top center;
+			}
+			#panel-bottom {
+				bottom: 0;
+				transform-origin: bottom center;
+			}
+			#label {
+				position: absolute;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 64px;
+				font-weight: 700;
+				letter-spacing: 0.04em;
+				color: #ffffff;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="stage" data-composition-id="transition" data-width="1080" data-height="1920">
+			<div id="panel-top" class="panel" data-start="0" data-duration="1.2"></div>
+			<div id="panel-bottom" class="panel" data-start="0" data-duration="1.2"></div>
+			<div id="label" data-start="0.3" data-duration="0.8">Label</div>
+		</div>
+
+		<!--__HF_PROPS__-->
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script>
+			(function () {
+				var props = window.__props || {};
+				var top = document.getElementById("panel-top");
+				var bottom = document.getElementById("panel-bottom");
+				var label = document.getElementById("label");
+
+				if (props.label != null) label.textContent = String(props.label);
+				else label.style.display = "none";
+				if (props.background) {
+					top.style.background = String(props.background);
+					bottom.style.background = String(props.background);
+				}
+				if (props.color) label.style.color = String(props.color);
+
+				var total = Number(props.durationInSeconds) || 1.2;
+				var half = total / 2;
+
+				var tl = gsap.timeline({ paused: true });
+				tl.set([top, bottom], { scaleY: 0 })
+					.set(label, { opacity: 0 })
+					.to([top, bottom], { duration: half * 0.7, scaleY: 1, ease: "power2.inOut" }, 0)
+					.to(label, { duration: 0.25, opacity: 1, ease: "power1.out" }, half * 0.5)
+					.to(label, { duration: 0.25, opacity: 0, ease: "power1.in" }, half * 1.1)
+					.to([top, bottom], { duration: half * 0.7, scaleY: 0, ease: "power2.inOut" }, half);
+
+				window.__timelines = window.__timelines || {};
+				window.__timelines["transition"] = tl;
+			})();
+		</script>
+	</body>
+</html>

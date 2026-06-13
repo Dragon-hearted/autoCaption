@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--
+	Hyperframes template: lower-third
+	A name/role caption strip that slides in from the left near the bottom.
+
+	Timing model:
+	  - Stage carries data-composition-id / data-width / data-height.
+	  - Animated elements carry data-start / data-duration (seconds).
+	  - A PAUSED GSAP timeline is registered at window.__timelines["lower-third"]
+	    for deterministic per-frame seeking by the Hyperframes engine.
+
+	Parametrization: window.__props = { name, role, background, color, accentColor }.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			#stage {
+				position: relative;
+				width: 100%;
+				height: 100%;
+				font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+				background: transparent;
+			}
+			#bar {
+				position: absolute;
+				left: 80px;
+				bottom: 220px;
+				display: flex;
+				flex-direction: column;
+				padding: 28px 48px;
+				border-radius: 18px;
+				background: rgba(11, 14, 20, 0.86);
+				border-left: 10px solid #6c8cff;
+				overflow: hidden;
+			}
+			#name {
+				font-size: 56px;
+				font-weight: 700;
+				color: #ffffff;
+				white-space: nowrap;
+			}
+			#role {
+				margin-top: 8px;
+				font-size: 34px;
+				font-weight: 400;
+				color: #b9c2d8;
+				white-space: nowrap;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="stage" data-composition-id="lower-third" data-width="1080" data-height="1920">
+			<div id="bar" data-start="0" data-duration="2.5">
+				<span id="name" data-start="0.2" data-duration="2.5">Name</span>
+				<span id="role" data-start="0.35" data-duration="2.5">Role</span>
+			</div>
+		</div>
+
+		<!--__HF_PROPS__-->
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script>
+			(function () {
+				var props = window.__props || {};
+				var bar = document.getElementById("bar");
+				var name = document.getElementById("name");
+				var role = document.getElementById("role");
+
+				if (props.name != null) name.textContent = String(props.name);
+				if (props.role != null) role.textContent = String(props.role);
+				if (props.background) bar.style.background = String(props.background);
+				if (props.accentColor) bar.style.borderLeftColor = String(props.accentColor);
+				if (props.color) name.style.color = String(props.color);
+
+				var total = Number(props.durationInSeconds) || 4;
+
+				var tl = gsap.timeline({ paused: true });
+				tl.from(bar, { duration: 0.7, x: -160, opacity: 0, ease: "power3.out" }, 0)
+					.from(name, { duration: 0.5, opacity: 0, y: 18, ease: "power2.out" }, 0.2)
+					.from(role, { duration: 0.5, opacity: 0, y: 14, ease: "power2.out" }, 0.35)
+					.to({}, { duration: Math.max(0.6, total - 1.3) })
+					.to(bar, { duration: 0.5, x: -160, opacity: 0, ease: "power2.in" });
+
+				window.__timelines = window.__timelines || {};
+				window.__timelines["lower-third"] = tl;
+			})();
+		</script>
+	</body>
+</html>
