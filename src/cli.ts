@@ -166,7 +166,14 @@ export function parseServeArgs(argv: string[]): ServeArgs {
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i];
 		if (arg === "--port" || arg === "-p") {
-			port = Number(argv[++i]);
+			const raw = argv[++i];
+			const parsed = Number(raw);
+			if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
+				throw new Error(
+					`Invalid port: ${raw}. Expected an integer between 1 and 65535.`,
+				);
+			}
+			port = parsed;
 		} else if (!arg.startsWith("-")) {
 			projectPath = arg;
 		}

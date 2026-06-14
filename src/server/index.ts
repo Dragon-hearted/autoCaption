@@ -32,14 +32,7 @@
 
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import {
-	dirname,
-	extname,
-	isAbsolute,
-	join,
-	normalize,
-	resolve,
-} from "node:path";
+import { dirname, extname, join, normalize, resolve } from "node:path";
 import { Hono } from "hono";
 import {
 	defaultProject,
@@ -230,12 +223,21 @@ export function createApp(projectPath: string): Hono {
 		} catch (err) {
 			return c.json({ error: (err as Error).message }, 400);
 		}
-		const outputPath =
-			typeof body.outputPath === "string" && body.outputPath.length > 0
-				? isAbsolute(body.outputPath)
-					? body.outputPath
-					: join(projectDir, body.outputPath)
-				: defaultExportPath(projectPath, project);
+		let outputPath: string;
+		if (typeof body.outputPath === "string" && body.outputPath.length > 0) {
+			// Constrain client-supplied paths to projectDir. safeJoin rejects both
+			// absolute paths and `../` traversal, preventing arbitrary file writes.
+			const safe = safeJoin(projectDir, body.outputPath);
+			if (!safe) {
+				return c.json(
+					{ error: "invalid outputPath: must not escape project directory" },
+					400,
+				);
+			}
+			outputPath = safe;
+		} else {
+			outputPath = defaultExportPath(projectPath, project);
+		}
 		try {
 			const renderProject = await loadRenderProject();
 			const result = await renderProject({ project, outputPath });

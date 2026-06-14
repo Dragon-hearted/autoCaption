@@ -1,6 +1,12 @@
 import { spawn } from "node:child_process";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import {
+	copyFile,
+	mkdir,
+	mkdtemp,
+	readFile,
+	writeFile,
+} from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -37,6 +43,13 @@ const TEMPLATES_DIR = resolve(
 
 const PROPS_MARKER = "<!--__HF_PROPS__-->";
 
+// Templates load GSAP from `vendor/gsap.min.js` (repo-controlled) instead of a
+// CDN, so renders don't depend on third-party network availability. The vendored
+// file is copied into each render dir alongside `index.html` so the relative
+// `<script src="vendor/gsap.min.js">` resolves at render time.
+const VENDOR_GSAP_REL = join("vendor", "gsap.min.js");
+const VENDOR_GSAP_SRC = join(TEMPLATES_DIR, VENDOR_GSAP_REL);
+
 export type RenderMotionClipOptions = {
 	/** Template name ("title-card"), file name ("title-card.html"), or absolute path. */
 	template: string;
@@ -56,7 +69,14 @@ export function resolveTemplatePath(template: string): string {
 		return template;
 	}
 	const fileName = template.endsWith(".html") ? template : `${template}.html`;
-	return join(TEMPLATES_DIR, fileName);
+	// Constrain relative templates to TEMPLATES_DIR so a crafted `clip.template`
+	// (e.g. "../../etc/passwd") can't traverse out of the template root.
+	const resolved = resolve(TEMPLATES_DIR, fileName);
+	const rel = relative(TEMPLATES_DIR, resolved);
+	if (rel.startsWith("..") || isAbsolute(rel)) {
+		throw new Error(`Template path escapes templates dir: ${template}`);
+	}
+	return resolved;
 }
 
 /** JSON-encode props so they can sit safely inside an inline <script>. */
@@ -137,27 +157,38 @@ export async function renderMotionClip(
 			.replace(/\.html$/, "")
 			.split(/[\\/]/)
 			.pop() ?? "clip";
-	const outPath = join(outDir, `${base}.mp4`);
 
 	// The `hyperframes render` CLI takes a project *directory* and renders that
 	// dir's `index.html` — passing an HTML file path fails with "Not a directory".
-	// Stage the injected HTML as `index.html` in a per-clip render dir.
-	const renderDir = join(outDir, `.hf-${base}`);
-	await mkdir(renderDir, { recursive: true });
+	// A per-invocation temp dir (mkdtemp) gives each render a unique staging dir
+	// and output path so concurrent renders of the same template can't clobber
+	// each other's `index.html` / mp4.
+	const renderDir = await mkdtemp(join(outDir, `.hf-${base}-`));
+	const outPath = join(renderDir, `${base}.mp4`);
 	const htmlPath = join(renderDir, "index.html");
 
 	await writeFile(htmlPath, injected, "utf8");
+
+	// Stage the vendored GSAP next to index.html so `vendor/gsap.min.js` resolves
+	// during the headless render without any network access.
+	const vendorDir = join(renderDir, "vendor");
+	await mkdir(vendorDir, { recursive: true });
+	await copyFile(VENDOR_GSAP_SRC, join(vendorDir, "gsap.min.js"));
 
 	await runHyperframesRender(renderDir, outPath, fps);
 
 	return outPath;
 }
 
+/** Wall-clock cap for a single hyperframes render before it is aborted. */
+const RENDER_TIMEOUT_MS = 120_000;
+
 /** Spawn `bunx hyperframes render`, resolving with the output path on success. */
 function runHyperframesRender(
 	renderDir: string,
 	outPath: string,
 	fps: number,
+	timeoutMs: number = RENDER_TIMEOUT_MS,
 ): Promise<void> {
 	return new Promise((resolvePromise, reject) => {
 		const child = spawn(
@@ -166,8 +197,18 @@ function runHyperframesRender(
 			{ stdio: "inherit" },
 		);
 
-		child.on("error", reject);
+		// Guard against a hung Chromium/Hyperframes never settling this promise.
+		const timeout = setTimeout(() => {
+			child.kill("SIGTERM");
+			reject(new Error(`hyperframes render timed out after ${timeoutMs}ms`));
+		}, timeoutMs);
+
+		child.on("error", (err) => {
+			clearTimeout(timeout);
+			reject(err);
+		});
 		child.on("close", (code) => {
+			clearTimeout(timeout);
 			if (code === 0) {
 				resolvePromise();
 			} else {

@@ -75,7 +75,7 @@
 
 		<!--__HF_PROPS__-->
 
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+		<script src="vendor/gsap.min.js"></script>
 		<script>
 			(function () {
 				var props = window.__props || {};
@@ -85,8 +85,11 @@
 				var accent = document.getElementById("accent");
 
 				if (props.title != null) title.textContent = String(props.title);
-				if (props.subtitle != null) subtitle.textContent = String(props.subtitle);
-				else if (props.subtitle === "") subtitle.style.display = "none";
+				if (props.subtitle === "") {
+					subtitle.style.display = "none";
+				} else if (props.subtitle != null) {
+					subtitle.textContent = String(props.subtitle);
+				}
 				if (props.background) stage.style.background = String(props.background);
 				if (props.color) {
 					title.style.color = String(props.color);

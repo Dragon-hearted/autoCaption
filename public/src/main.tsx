@@ -407,6 +407,10 @@ function App() {
 	const [exporting, setExporting] = useState(false);
 	const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const dirty = useRef(false);
+	// Monotonically increasing id for each scheduled save. A save's result is
+	// only applied if it is still the latest one, so a slow PUT that resolves
+	// after a newer edit can never overwrite the newer state with stale status.
+	const saveSeq = useRef(0);
 
 	// Initial load.
 	useEffect(() => {
@@ -427,10 +431,15 @@ function App() {
 			clearTimeout(saveTimer.current);
 		}
 		setStatus("saving…");
+		const seq = ++saveSeq.current;
 		saveTimer.current = setTimeout(() => {
 			apiPutProject(project)
-				.then(() => setStatus("saved"))
-				.catch((err) => setStatus(`save failed: ${err.message}`));
+				.then(() => {
+					if (seq === saveSeq.current) setStatus("saved");
+				})
+				.catch((err) => {
+					if (seq === saveSeq.current) setStatus(`save failed: ${err.message}`);
+				});
 		}, 500);
 		return () => {
 			if (saveTimer.current) {

@@ -21,7 +21,7 @@
   </defs>
   <g opacity="0">
     <animate attributeName="opacity" from="0" to="1" dur="0.6s" begin="0s" fill="freeze" />
-    <text x="400" y="60" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" filter="url(#glow-0)">autoCaption</text>
+    <text x="400" y="60" text-anchor="middle" fill="#E0E0E0" font-family="Inter, system-ui, sans-serif" font-size="32" font-weight="700" filter="url(#glow-0)">AutoEditor</text>
   </g>
   <line x1="340" y1="74" x2="460" y2="74" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" opacity="0">
     <animate attributeName="opacity" from="0" to="0.7" dur="0.6s" begin="0.3s" fill="freeze" />
