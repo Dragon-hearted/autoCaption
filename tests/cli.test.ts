@@ -1,7 +1,12 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { parseArgs } from "../src/cli";
+import {
+	parseArgs,
+	parseCommand,
+	parseEditArgs,
+	parseServeArgs,
+} from "../src/cli";
 import { getOutputPath } from "../src/render";
 import { createTempDir } from "./setup";
 
@@ -104,6 +109,117 @@ describe("parseArgs", () => {
 
 	it("should handle --help flag", () => {
 		expect(() => parseArgs(["--help"])).toThrow(/usage/i);
+	});
+});
+
+describe("parseCommand dispatcher", () => {
+	let tempDir: { path: string; cleanup: () => void };
+	let videoPath: string;
+	let projectPath: string;
+
+	beforeEach(() => {
+		tempDir = createTempDir();
+		videoPath = join(tempDir.path, "test-video.mp4");
+		writeFileSync(videoPath, "fake video content");
+		projectPath = join(tempDir.path, "project.json");
+		writeFileSync(projectPath, JSON.stringify({ id: "p", title: "t" }));
+	});
+
+	afterEach(() => {
+		tempDir.cleanup();
+	});
+
+	it("dispatches explicit caption subcommand", () => {
+		const cmd = parseCommand(["caption", videoPath]);
+		expect(cmd.type).toBe("caption");
+		if (cmd.type === "caption") {
+			expect(cmd.args.videoPath).toBe(videoPath);
+		}
+	});
+
+	it("passes caption flags through the subcommand", () => {
+		const cmd = parseCommand(["caption", videoPath, "--font-size", "120"]);
+		expect(cmd.type).toBe("caption");
+		if (cmd.type === "caption") {
+			expect(cmd.args.fontSize).toBe(120);
+		}
+	});
+
+	it("back-compat: a bare video path is treated as caption", () => {
+		const cmd = parseCommand([videoPath]);
+		expect(cmd.type).toBe("caption");
+		if (cmd.type === "caption") {
+			expect(cmd.args.videoPath).toBe(videoPath);
+		}
+	});
+
+	it("back-compat: flags before a bare video path still work", () => {
+		const cmd = parseCommand(["--model", "tiny", videoPath]);
+		expect(cmd.type).toBe("caption");
+		if (cmd.type === "caption") {
+			expect(cmd.args.videoPath).toBe(videoPath);
+			expect(cmd.args.model).toBe("tiny");
+		}
+	});
+
+	it("dispatches edit subcommand with project path", () => {
+		const cmd = parseCommand(["edit", projectPath]);
+		expect(cmd.type).toBe("edit");
+		if (cmd.type === "edit") {
+			expect(cmd.args.projectPath).toBe(projectPath);
+		}
+	});
+
+	it("dispatches edit subcommand with output flag", () => {
+		const out = join(tempDir.path, "out.mp4");
+		const cmd = parseCommand(["edit", projectPath, "-o", out]);
+		expect(cmd.type).toBe("edit");
+		if (cmd.type === "edit") {
+			expect(cmd.args.output).toBe(out);
+		}
+	});
+
+	it("dispatches serve subcommand with default port", () => {
+		const cmd = parseCommand(["serve"]);
+		expect(cmd.type).toBe("serve");
+		if (cmd.type === "serve") {
+			expect(cmd.args.port).toBe(4321);
+		}
+	});
+
+	it("dispatches serve subcommand with custom port", () => {
+		const cmd = parseCommand(["serve", "--port", "8080"]);
+		expect(cmd.type).toBe("serve");
+		if (cmd.type === "serve") {
+			expect(cmd.args.port).toBe(8080);
+		}
+	});
+
+	it("returns help for no args", () => {
+		expect(parseCommand([]).type).toBe("help");
+	});
+
+	it("returns help for --help", () => {
+		expect(parseCommand(["--help"]).type).toBe("help");
+	});
+
+	it("throws on a missing project file for edit", () => {
+		expect(() => parseEditArgs(["/nonexistent/project.json"])).toThrow();
+	});
+
+	it("parses serve args directly", () => {
+		expect(parseServeArgs(["--port", "9000"]).port).toBe(9000);
+		expect(parseServeArgs([]).port).toBe(4321);
+	});
+
+	it("serve accepts an optional positional project path", () => {
+		const cmd = parseCommand(["serve", "my-project.json", "--port", "8080"]);
+		expect(cmd.type).toBe("serve");
+		if (cmd.type === "serve") {
+			expect(cmd.args.projectPath).toBe("my-project.json");
+			expect(cmd.args.port).toBe(8080);
+		}
+		expect(parseServeArgs([]).projectPath).toBeUndefined();
 	});
 });
 

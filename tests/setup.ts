@@ -161,7 +161,7 @@ export const mockWhisperOutput = {
 };
 
 export function createTempDir(): { path: string; cleanup: () => void } {
-	const path = mkdtempSync(join(tmpdir(), "autocaption-test-"));
+	const path = mkdtempSync(join(tmpdir(), "auto-editor-test-"));
 	return {
 		path,
 		cleanup: () => rmSync(path, { recursive: true, force: true }),

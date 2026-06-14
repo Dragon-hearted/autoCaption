@@ -1,6 +1,6 @@
-# systems/autoCaption/knowledge/usage.yaml
+# systems/auto-editor/knowledge/usage.yaml
 # Consumed by readme-engine's usage-collector + usage renderer (Appendix A schema).
-# autoCaption is a local-first CLI: no API keys or credentials are required.
+# AutoEditor is a local-first CLI: no API keys or credentials are required.
 
 features:
   - name: "Word-level transcription"
@@ -36,11 +36,11 @@ prerequisites:
   - "Free disk space for ./whisper.cpp (compiled binary + model) and ./public (a copy of the input video + captions.json)"
 
 configVars: []
-# autoCaption requires no environment variables or credentials. The justfile sets
+# AutoEditor requires no environment variables or credentials. The justfile sets
 # `set dotenv-load := true`, so an optional .env is loaded if present, but no vars are read.
 
 install:
-  - "cd systems/autoCaption"
+  - "cd systems/auto-editor"
   - "bun install"
 
 usageSteps:

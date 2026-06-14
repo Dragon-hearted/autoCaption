@@ -119,8 +119,8 @@ export async function transcribeVideo(
 	await ensureWhisperCpp();
 	await ensureModel(model);
 
-	const tempWav = path.join(os.tmpdir(), `autocaption_${Date.now()}.wav`);
-	const tempJson = path.join(os.tmpdir(), `autocaption_${Date.now()}`);
+	const tempWav = path.join(os.tmpdir(), `auto-editor_${Date.now()}.wav`);
+	const tempJson = path.join(os.tmpdir(), `auto-editor_${Date.now()}`);
 
 	try {
 		extractAudio(videoPath, tempWav);

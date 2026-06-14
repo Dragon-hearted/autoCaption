@@ -2,6 +2,7 @@ import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { z } from "zod";
+import type { Project } from "./types/project";
 
 export const RenderOptionsSchema = z.object({
 	inputPath: z.string(),
@@ -73,4 +74,50 @@ export async function renderVideo(options: RenderOptions): Promise<string> {
 	});
 
 	return parsed.outputPath;
+}
+
+export interface RenderProjectOptions {
+	project: Project;
+	outputPath: string;
+	codec?: "h264" | "h265";
+	onProgress?: (stage: string, progress: number) => void;
+}
+
+/**
+ * Render an editable Project document to an mp4 by bundling Root.tsx, selecting
+ * the `Timeline` composition, and passing the Project as inputProps. The
+ * composition's calculateMetadata derives fps/width/height/duration from it.
+ */
+export async function renderProject(
+	options: RenderProjectOptions,
+): Promise<string> {
+	const { project, outputPath, codec, onProgress } = options;
+
+	const bundled = await bundle({
+		entryPoint: path.resolve(__dirname, "compositions/Root.tsx"),
+		onProgress: (progress: number) => {
+			onProgress?.("bundling", progress);
+		},
+	});
+
+	const inputProps = { project };
+
+	const composition = await selectComposition({
+		serveUrl: bundled,
+		id: "Timeline",
+		inputProps,
+	});
+
+	await renderMedia({
+		composition,
+		serveUrl: bundled,
+		codec: codec ?? "h264",
+		outputLocation: outputPath,
+		inputProps,
+		onProgress: ({ progress }) => {
+			onProgress?.("rendering", progress);
+		},
+	});
+
+	return outputPath;
 }

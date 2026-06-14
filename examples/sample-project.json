@@ -1,0 +1,41 @@
+{
+	"id": "sample",
+	"title": "Auto Editor Proof",
+	"fps": 30,
+	"width": 1080,
+	"height": 1920,
+	"durationInFrames": 90,
+	"background": { "kind": "gradient", "preset": "sunset" },
+	"tracks": [
+		{
+			"id": "main",
+			"name": "Main",
+			"items": [
+				{
+					"kind": "motionClip",
+					"id": "titlecard",
+					"src": "motion/title-card.mp4",
+					"template": "title-card",
+					"props": {
+						"title": "Auto Editor",
+						"subtitle": "End-to-end proof",
+						"color": "#ffffff",
+						"accentColor": "#39E508"
+					},
+					"from": 0,
+					"durationInFrames": 45
+				},
+				{
+					"kind": "text",
+					"id": "label",
+					"text": "Auto Editor",
+					"from": 45,
+					"durationInFrames": 45,
+					"position": "center",
+					"fontSize": 96,
+					"color": "#ffffff"
+				}
+			]
+		}
+	]
+}

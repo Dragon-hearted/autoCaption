@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>AutoEditor — editor</title>
+		<style>
+			:root {
+				--bg: #0e0f13;
+				--panel: #16181f;
+				--panel-2: #1d2029;
+				--line: #2a2e3a;
+				--text: #e7e9ee;
+				--muted: #8b90a0;
+				--accent: #6ea8fe;
+				--accent-dim: #2b3a5a;
+				--danger: #ff6b6b;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body,
+			#root {
+				height: 100%;
+			}
+			body {
+				margin: 0;
+				font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo,
+					monospace;
+				background: var(--bg);
+				color: var(--text);
+				font-size: 13px;
+			}
+			button {
+				font: inherit;
+				color: var(--text);
+				background: var(--panel-2);
+				border: 1px solid var(--line);
+				border-radius: 6px;
+				padding: 6px 10px;
+				cursor: pointer;
+			}
+			button:hover {
+				border-color: var(--accent);
+			}
+			button.primary {
+				background: var(--accent-dim);
+				border-color: var(--accent);
+			}
+			input,
+			select {
+				font: inherit;
+				color: var(--text);
+				background: var(--panel);
+				border: 1px solid var(--line);
+				border-radius: 5px;
+				padding: 4px 6px;
+				width: 100%;
+			}
+			.noscript {
+				padding: 48px;
+			}
+			code {
+				background: #000;
+				padding: 2px 6px;
+				border-radius: 4px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="root">
+			<div class="noscript">
+				<h1>AutoEditor editor</h1>
+				<p>
+					Loading the editor bundle…  If this message stays, build it
+					with <code>bun run public/build.ts</code> and reload.
+				</p>
+			</div>
+		</div>
+		<script type="module" src="/dist/main.js"></script>
+	</body>
+</html>

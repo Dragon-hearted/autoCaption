@@ -1,6 +1,6 @@
 <div align="center">
 
-![autoCaption](images/hero.svg)
+![AutoEditor](images/hero.svg)
 
 ### Word-highlighted caption renderer for vertical video
 
@@ -51,7 +51,7 @@
 
 ![Pipeline](images/pipeline.svg)
 
-autoCaption processes data through a multi-stage pipeline.
+AutoEditor processes data through a multi-stage pipeline.
 
 ---
 
@@ -91,7 +91,7 @@ autoCaption processes data through a multi-stage pipeline.
 ### Install
 
 ```bash
-cd systems/autoCaption
+cd systems/auto-editor
 bun install
 ```
 
@@ -196,7 +196,7 @@ bun run test
 ## 📂 Project Structure
 
 ```
-autoCaption/
+auto-editor/
 ├── README.md
 ├── biome.json
 ├── images

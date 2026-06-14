@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<!--
+	Hyperframes template: title-card
+	A centered title + subtitle that fade and slide in.
+
+	Timing model:
+	  - The stage carries data-composition-id / data-width / data-height.
+	  - Animated elements carry data-start / data-duration (seconds).
+	  - A PAUSED GSAP timeline is registered at window.__timelines[<composition-id>]
+	    so the Hyperframes engine can seek it deterministically per frame.
+
+	Parametrization:
+	  - All text/colors are read from window.__props (injected by the generator
+	    in src/pipeline/motion-graphics.ts before render). Defaults below keep the
+	    template valid on its own.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			#stage {
+				position: relative;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+				background: #0b0e14;
+				color: #ffffff;
+			}
+			#title {
+				font-size: 96px;
+				font-weight: 800;
+				letter-spacing: -0.02em;
+				text-align: center;
+				max-width: 80%;
+				line-height: 1.05;
+			}
+			#subtitle {
+				margin-top: 28px;
+				font-size: 40px;
+				font-weight: 400;
+				opacity: 0.82;
+				text-align: center;
+				max-width: 72%;
+			}
+			#accent {
+				margin-top: 44px;
+				width: 140px;
+				height: 8px;
+				border-radius: 999px;
+				background: #6c8cff;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="stage" data-composition-id="title-card" data-width="1080" data-height="1920">
+			<h1 id="title" data-start="0" data-duration="2">Title</h1>
+			<p id="subtitle" data-start="0.25" data-duration="2">Subtitle</p>
+			<div id="accent" data-start="0.5" data-duration="2"></div>
+		</div>
+
+		<!--__HF_PROPS__-->
+
+		<script src="vendor/gsap.min.js"></script>
+		<script>
+			(function () {
+				var props = window.__props || {};
+				var stage = document.getElementById("stage");
+				var title = document.getElementById("title");
+				var subtitle = document.getElementById("subtitle");
+				var accent = document.getElementById("accent");
+
+				if (props.title != null) title.textContent = String(props.title);
+				if (props.subtitle === "") {
+					subtitle.style.display = "none";
+				} else if (props.subtitle != null) {
+					subtitle.textContent = String(props.subtitle);
+				}
+				if (props.background) stage.style.background = String(props.background);
+				if (props.color) {
+					title.style.color = String(props.color);
+					subtitle.style.color = String(props.color);
+				}
+				if (props.accentColor) accent.style.background = String(props.accentColor);
+
+				var total = Number(props.durationInSeconds) || 3;
+
+				var tl = gsap.timeline({ paused: true });
+				tl.from(title, { duration: 0.8, opacity: 0, y: 60, ease: "power3.out" }, 0)
+					.from(subtitle, { duration: 0.8, opacity: 0, y: 40, ease: "power3.out" }, 0.25)
+					.from(accent, { duration: 0.6, opacity: 0, scaleX: 0, transformOrigin: "center", ease: "power3.out" }, 0.5)
+					.to({}, { duration: Math.max(0.01, total - 1.1) });
+
+				window.__timelines = window.__timelines || {};
+				window.__timelines["title-card"] = tl;
+			})();
+		</script>
+	</body>
+</html>

@@ -1,5 +1,5 @@
 ---
-system: "autocaption"
+system: "auto-editor"
 type: execution
 driver: cli
 entry: "just render <video-path> [-m <model>] [--font-size <px>] [--position <top|center|bottom>] [--highlight-color <hex>] [-o <out.mp4>]"
@@ -10,7 +10,7 @@ lastUpdated: "2026-06-04"
 lastUpdatedBy: build-mode
 ---
 
-# Execution — autoCaption
+# Execution — AutoEditor
 
 How Execute Mode (`/adcelerate-execute`) runs this system. Execute Mode reads ONLY this manifest to decide how to run, then branches on `driver`.
 
