@@ -56,6 +56,50 @@ async function apiExport(): Promise<{ outputPath: string }> {
 }
 
 // ---------------------------------------------------------------------------
+// Scene Library — the `auto-editor slice` output (served at /scenes/*)
+// ---------------------------------------------------------------------------
+
+// Minimal shape of scenes.json (see src/pipeline/scene-slicer.ts `Manifest`).
+// ponytail: only the fields the panel reads — not the full Manifest type.
+type SceneVariant = {
+	variant: string;
+	clip: string; // e.g. "scenes/scene3_storyboard1_a.mp4" (relative to project)
+	thumb: string; // e.g. "scenes/scene3_storyboard1_a.jpg"
+	start: number;
+	end: number;
+	fps: number;
+	beat?: string | null;
+	camera_move?: string | null;
+	description?: string | null;
+};
+type SceneEntry = {
+	scene: number;
+	block: number;
+	beat: string | null;
+	variants: SceneVariant[];
+};
+type ScenesManifest = { project: string; scenes: SceneEntry[] };
+
+// Manifest paths are `scenes/…` relative to the storyboard project dir; the
+// server serves that dir at /scenes/*, so a leading "/" turns a manifest path
+// into its served URL.
+function sceneUrl(relPath: string): string {
+	return `/${relPath.replace(/^\/+/, "")}`;
+}
+
+/** Fetch scenes.json; `null` when no slice output is being served (404). */
+async function apiGetScenes(): Promise<ScenesManifest | null> {
+	const res = await fetch("/scenes/scenes.json");
+	if (res.status === 404) {
+		return null;
+	}
+	if (!res.ok) {
+		throw new Error(`GET /scenes/scenes.json -> ${res.status}`);
+	}
+	return (await res.json()) as ScenesManifest;
+}
+
+// ---------------------------------------------------------------------------
 // Item factories + helpers
 // ---------------------------------------------------------------------------
 
@@ -396,6 +440,92 @@ function TimelineStrip({
 }
 
 // ---------------------------------------------------------------------------
+// Scene Library panel — fetches scenes.json, renders scenes 1..N with variant
+// poster thumbnails; clicking a thumb drops a video item for that clip.
+// ---------------------------------------------------------------------------
+
+function SceneLibrary({
+	onPick,
+}: {
+	onPick: (variant: SceneVariant) => void;
+}) {
+	const [manifest, setManifest] = useState<ScenesManifest | null>(null);
+	const [status, setStatus] = useState<string>("loading…");
+
+	useEffect(() => {
+		apiGetScenes()
+			.then((m) => {
+				setManifest(m);
+				setStatus(m ? "ready" : "none");
+			})
+			.catch((err) => setStatus(`failed: ${err.message}`));
+	}, []);
+
+	return (
+		<div style={{ marginBottom: 16 }}>
+			<strong style={{ textTransform: "uppercase", letterSpacing: 1 }}>
+				Scene Library
+			</strong>
+			{status !== "ready" && (
+				<p style={{ color: "var(--muted)", marginTop: 8 }}>
+					{status === "none"
+						? "No scenes.json served. Run `just slice <project>`, then serve that project."
+						: status === "loading…"
+							? "loading scenes…"
+							: status}
+				</p>
+			)}
+			{manifest?.scenes.map((scene) => (
+				<div key={scene.scene} style={{ marginTop: 10 }}>
+					<div
+						style={{ color: "var(--muted)", fontSize: 11, marginBottom: 4 }}
+					>
+						Scene {scene.scene} · block {scene.block}
+						{scene.beat ? ` · ${scene.beat}` : ""}
+					</div>
+					<div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+						{scene.variants.map((v) => (
+							<button
+								key={v.variant}
+								type="button"
+								onClick={() => onPick(v)}
+								title={`Scene ${scene.scene} variant ${v.variant} — add to timeline${
+									v.description ? `\n${v.description}` : ""
+								}`}
+								style={{ padding: 3, lineHeight: 0 }}
+							>
+								<img
+									src={sceneUrl(v.thumb)}
+									alt={`scene ${scene.scene} variant ${v.variant}`}
+									style={{
+										display: "block",
+										width: 76,
+										height: 44,
+										objectFit: "cover",
+										borderRadius: 3,
+									}}
+								/>
+								<span
+									style={{
+										display: "block",
+										marginTop: 3,
+										fontSize: 10,
+										textAlign: "center",
+										color: "var(--text)",
+									}}
+								>
+									S{scene.scene}·{v.variant}
+								</span>
+							</button>
+						))}
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+// ---------------------------------------------------------------------------
 // App
 // ---------------------------------------------------------------------------
 
@@ -465,12 +595,14 @@ function App() {
 	);
 
 	const addItem = useCallback(
-		(kind: Item["kind"]) => {
+		(kind: Item["kind"], overrides?: Partial<Item>) => {
 			if (!project) {
 				return;
 			}
 			const { project: withTrack, trackId } = ensureTrack(project);
-			const item = newItem(kind, 0);
+			// Overrides let callers (e.g. the Scene Library) drop a fully-specified
+			// item — a video pointing at a chosen scene clip — reusing this path.
+			const item = { ...newItem(kind, 0), ...overrides } as Item;
 			const tracks = withTrack.tracks.map((t) =>
 				t.id === trackId ? { ...t, items: [...t.items, item] } : t,
 			);
@@ -478,6 +610,19 @@ function App() {
 			setSelection({ trackId, itemId: item.id });
 		},
 		[project, ensureTrack, mutate],
+	);
+
+	// Scene Library pick → drop a video item pointing at the chosen clip.
+	// staticFile(clip) resolves to /scenes/… (served by the server's /scenes/*
+	// route). Duration follows the clip's own span so it lands the right length.
+	const addSceneClip = useCallback(
+		(v: SceneVariant) => {
+			addItem("video", {
+				src: v.clip,
+				durationInFrames: Math.max(1, Math.round((v.end - v.start) * v.fps)),
+			});
+		},
+		[addItem],
 	);
 
 	const updateItem = useCallback(
@@ -669,6 +814,13 @@ function App() {
 					overflow: "auto",
 				}}
 			>
+				<SceneLibrary onPick={addSceneClip} />
+				<div
+					style={{
+						borderTop: "1px solid var(--line)",
+						margin: "0 0 12px",
+					}}
+				/>
 				{selected ? (
 					<>
 						<div style={{ display: "flex", gap: 6, marginBottom: 12 }}>

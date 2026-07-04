@@ -5,6 +5,7 @@ import {
 	renderMotionClip,
 	resolveTemplatePath,
 } from "./pipeline/motion-graphics";
+import { sliceProject } from "./pipeline/scene-slicer";
 import { getOutputPath, renderProject, renderVideo } from "./render";
 import { writeSrt } from "./srt";
 import { transcribeVideo, VALID_MODELS, writeCaptionsJson } from "./transcribe";
@@ -31,13 +32,18 @@ export interface ServeArgs {
 	projectPath?: string;
 }
 
+export interface SliceArgs {
+	projectDir: string;
+}
+
 export type Command =
 	| { type: "caption"; args: ParsedArgs }
 	| { type: "edit"; args: EditArgs }
 	| { type: "serve"; args: ServeArgs }
+	| { type: "slice"; args: SliceArgs }
 	| { type: "help" };
 
-export const SUBCOMMANDS = ["caption", "edit", "serve"] as const;
+export const SUBCOMMANDS = ["caption", "edit", "serve", "slice"] as const;
 
 const HELP_TEXT = `Usage: auto-editor <command> [options]
 
@@ -45,6 +51,8 @@ Commands:
   caption <video>         Transcribe a video and render burned-in captions
   edit <project.json>     Render an editable Project document to mp4
   serve [project.json]    Start the interactive browser editor
+  slice <project-dir>     Slice a storyboard project's block videos into
+                          per-scene clips + scenes.json (in <project>/scenes/)
 
 Back-compat:
   auto-editor <video>     If the first argument is a video file (not a command),
@@ -66,6 +74,9 @@ serve options:
   [project.json]          Project file to open (default: project.json in cwd)
   -p, --port <number>     Port to listen on (default: 4321)
 
+slice options:
+  <project-dir>           Storyboard project dir (e.g. client/x/storyboards/y)
+
   -h, --help              Show this help message
 
 Examples:
@@ -73,6 +84,7 @@ Examples:
   auto-editor clip.mp4                       # same as: caption clip.mp4
   auto-editor edit project.json -o out.mp4
   auto-editor serve --port 4321
+  auto-editor slice client/comet/storyboards/one-pair-three-lives
 
 Valid models: ${VALID_MODELS.join(", ")}
 `;
@@ -182,6 +194,30 @@ export function parseServeArgs(argv: string[]): ServeArgs {
 	return { port, projectPath };
 }
 
+export function parseSliceArgs(argv: string[]): SliceArgs {
+	let projectDir: string | undefined;
+
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		if (!arg.startsWith("-")) projectDir = arg;
+	}
+
+	if (!projectDir) {
+		throw new Error(
+			"No storyboard project directory provided. Run with --help for usage.",
+		);
+	}
+
+	if (!fs.existsSync(projectDir)) {
+		throw new Error(`Project directory not found: ${projectDir}`);
+	}
+	if (!fs.statSync(projectDir).isDirectory()) {
+		throw new Error(`Not a directory: ${projectDir}`);
+	}
+
+	return { projectDir };
+}
+
 /**
  * Dispatch argv to a subcommand. Keeps full back-compat: a first argument that
  * is not a known subcommand falls through to the caption parser (so old
@@ -202,6 +238,9 @@ export function parseCommand(argv: string[]): Command {
 	}
 	if (first === "serve") {
 		return { type: "serve", args: parseServeArgs(rest) };
+	}
+	if (first === "slice") {
+		return { type: "slice", args: parseSliceArgs(rest) };
 	}
 
 	// Back-compat: not a known subcommand → treat the whole argv as caption args.
@@ -353,6 +392,16 @@ async function generateMotionClips(project: Project): Promise<void> {
 	}
 }
 
+async function runSlice(args: SliceArgs): Promise<void> {
+	console.log(`Slicing storyboard project ${args.projectDir}...`);
+	const manifest = await sliceProject(args.projectDir);
+	const clips = manifest.scenes.reduce((n, s) => n + s.variants.length, 0);
+	const out = path.join(args.projectDir, "scenes", "scenes.json");
+	console.log(
+		`\nDone! ${manifest.scenes.length} scenes, ${clips} clips → ${out}`,
+	);
+}
+
 async function runServe(args: ServeArgs): Promise<void> {
 	// Loaded via a variable specifier so the CLI typechecks before the editor
 	// server module (Task #5) exists.
@@ -399,6 +448,9 @@ async function main(): Promise<void> {
 			return;
 		case "serve":
 			await runServe(command.args);
+			return;
+		case "slice":
+			await runSlice(command.args);
 			return;
 	}
 }
