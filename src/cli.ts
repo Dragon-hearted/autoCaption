@@ -5,6 +5,12 @@ import {
 	renderMotionClip,
 	resolveTemplatePath,
 } from "./pipeline/motion-graphics";
+import {
+	buildComparePlan,
+	buildFinalPlan,
+	buildPalmierPlan,
+	type Selection,
+} from "./pipeline/palmier-plan";
 import { sliceProject } from "./pipeline/scene-slicer";
 import { getOutputPath, renderProject, renderVideo } from "./render";
 import { writeSrt } from "./srt";
@@ -36,14 +42,30 @@ export interface SliceArgs {
 	projectDir: string;
 }
 
+export type PlanMode = "concat" | "compare" | "final";
+
+export interface PlanArgs {
+	projectDir: string;
+	mode: PlanMode;
+	/** Path to a selection.json — required when mode === "final". */
+	selection?: string;
+}
+
 export type Command =
 	| { type: "caption"; args: ParsedArgs }
 	| { type: "edit"; args: EditArgs }
 	| { type: "serve"; args: ServeArgs }
 	| { type: "slice"; args: SliceArgs }
+	| { type: "plan"; args: PlanArgs }
 	| { type: "help" };
 
-export const SUBCOMMANDS = ["caption", "edit", "serve", "slice"] as const;
+export const SUBCOMMANDS = [
+	"caption",
+	"edit",
+	"serve",
+	"slice",
+	"plan",
+] as const;
 
 const HELP_TEXT = `Usage: auto-editor <command> [options]
 
@@ -53,6 +75,11 @@ Commands:
   serve [project.json]    Start the interactive browser editor
   slice <project-dir>     Slice a storyboard project's block videos into
                           per-scene clips + scenes.json (in <project>/scenes/)
+  plan <project-dir>      Order a sliced project's clips into a palmier plan.
+                          --mode concat (default) → scenes/palmier-plan.json;
+                          --mode compare → scenes/palmier-compare-plan.json
+                          (A/B parallel-track slots); --mode final --selection
+                          <sel.json> → scenes/palmier-final-plan.json (winners)
 
 Back-compat:
   auto-editor <video>     If the first argument is a video file (not a command),
@@ -77,6 +104,11 @@ serve options:
 slice options:
   <project-dir>           Storyboard project dir (e.g. client/x/storyboards/y)
 
+plan options:
+  <project-dir>           Sliced storyboard project dir (must have scenes.json)
+  --mode <m>              concat (default) | compare | final
+  --selection <path>      Per-scene winners JSON (required for --mode final)
+
   -h, --help              Show this help message
 
 Examples:
@@ -85,6 +117,9 @@ Examples:
   auto-editor edit project.json -o out.mp4
   auto-editor serve --port 4321
   auto-editor slice client/comet/storyboards/one-pair-three-lives
+  auto-editor plan client/comet/storyboards/one-pair-three-lives
+  auto-editor plan client/comet/storyboards/one-pair-three-lives --mode compare
+  auto-editor plan <dir> --mode final --selection scenes/selection.json
 
 Valid models: ${VALID_MODELS.join(", ")}
 `;
@@ -218,6 +253,55 @@ export function parseSliceArgs(argv: string[]): SliceArgs {
 	return { projectDir };
 }
 
+export function parsePlanArgs(argv: string[]): PlanArgs {
+	let projectDir: string | undefined;
+	let mode: PlanMode = "concat";
+	let selection: string | undefined;
+
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		if (arg === "--mode") {
+			const raw = argv[++i];
+			if (raw !== "concat" && raw !== "compare" && raw !== "final") {
+				throw new Error(
+					`Invalid --mode: ${raw}. Expected concat, compare, or final.`,
+				);
+			}
+			mode = raw;
+		} else if (arg === "--selection") {
+			selection = argv[++i];
+		} else if (!arg.startsWith("-")) {
+			projectDir = arg;
+		}
+	}
+
+	if (!projectDir) {
+		throw new Error(
+			"No storyboard project directory provided. Run with --help for usage.",
+		);
+	}
+
+	if (!fs.existsSync(projectDir)) {
+		throw new Error(`Project directory not found: ${projectDir}`);
+	}
+	if (!fs.statSync(projectDir).isDirectory()) {
+		throw new Error(`Not a directory: ${projectDir}`);
+	}
+
+	if (mode === "final") {
+		if (!selection) {
+			throw new Error(
+				"--mode final requires --selection <path.json> (per-scene winners).",
+			);
+		}
+		if (!fs.existsSync(selection)) {
+			throw new Error(`Selection file not found: ${selection}`);
+		}
+	}
+
+	return { projectDir, mode, selection };
+}
+
 /**
  * Dispatch argv to a subcommand. Keeps full back-compat: a first argument that
  * is not a known subcommand falls through to the caption parser (so old
@@ -241,6 +325,9 @@ export function parseCommand(argv: string[]): Command {
 	}
 	if (first === "slice") {
 		return { type: "slice", args: parseSliceArgs(rest) };
+	}
+	if (first === "plan") {
+		return { type: "plan", args: parsePlanArgs(rest) };
 	}
 
 	// Back-compat: not a known subcommand → treat the whole argv as caption args.
@@ -402,6 +489,57 @@ async function runSlice(args: SliceArgs): Promise<void> {
 	);
 }
 
+async function runPlan(args: PlanArgs): Promise<void> {
+	const scenesDir = path.join(args.projectDir, "scenes");
+
+	if (args.mode === "compare") {
+		console.log(`Planning A/B compare timeline for ${args.projectDir}...`);
+		const plan = buildComparePlan(args.projectDir);
+		const out = path.join(scenesDir, "palmier-compare-plan.json");
+		fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+		const clips = plan.slots.reduce((n, s) => n + s.variants.length, 0);
+		console.log(
+			`\nDone! ${plan.slots.length} slots, ${clips} variant clips ` +
+				`(A/B parallel tracks) → ${out}`,
+		);
+		return;
+	}
+
+	if (args.mode === "final") {
+		console.log(
+			`Planning final single-track timeline for ${args.projectDir}...`,
+		);
+		const selection = JSON.parse(
+			fs.readFileSync(args.selection as string, "utf8"),
+		) as Selection;
+		const plan = buildFinalPlan(args.projectDir, selection);
+		const out = path.join(scenesDir, "palmier-final-plan.json");
+		fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+		const order = plan.clips
+			.map((c) => `${c.block}${c.variant}${c.scene}`)
+			.join(" ");
+		console.log(
+			`\nDone! ${plan.clips.length} winner clips (single track) → ${out}`,
+		);
+		console.log(`Order: ${order}`);
+		return;
+	}
+
+	// concat (default) — unchanged v1 behavior.
+	console.log(`Planning palmier timeline for ${args.projectDir}...`);
+	const plan = buildPalmierPlan(args.projectDir);
+	const out = path.join(args.projectDir, "scenes", "palmier-plan.json");
+	fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+
+	const order = plan.clips
+		.map((c) => `${c.block}${c.variant}${c.scene}`)
+		.join(" ");
+	console.log(
+		`\nDone! ${plan.clips.length} clips (Block→variant→scene) → ${out}`,
+	);
+	console.log(`Order: ${order}`);
+}
+
 async function runServe(args: ServeArgs): Promise<void> {
 	// Loaded via a variable specifier so the CLI typechecks before the editor
 	// server module (Task #5) exists.
@@ -451,6 +589,9 @@ async function main(): Promise<void> {
 			return;
 		case "slice":
 			await runSlice(command.args);
+			return;
+		case "plan":
+			await runPlan(command.args);
 			return;
 	}
 }
