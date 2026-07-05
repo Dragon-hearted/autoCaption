@@ -6,6 +6,11 @@ import {
 	resolveTemplatePath,
 } from "./pipeline/motion-graphics";
 import {
+	createPalmierProject,
+	getStatus,
+	launchAndWait,
+} from "./pipeline/palmier-ctl";
+import {
 	buildComparePlan,
 	buildFinalPlan,
 	buildPalmierPlan,
@@ -51,12 +56,24 @@ export interface PlanArgs {
 	selection?: string;
 }
 
+export type PalmierAction = "launch" | "status" | "create-project";
+
+export interface PalmierArgs {
+	action: PalmierAction;
+	/** create-project only. */
+	name?: string;
+	fps?: number;
+	width?: number;
+	height?: number;
+}
+
 export type Command =
 	| { type: "caption"; args: ParsedArgs }
 	| { type: "edit"; args: EditArgs }
 	| { type: "serve"; args: ServeArgs }
 	| { type: "slice"; args: SliceArgs }
 	| { type: "plan"; args: PlanArgs }
+	| { type: "palmier"; args: PalmierArgs }
 	| { type: "help" };
 
 export const SUBCOMMANDS = [
@@ -65,6 +82,7 @@ export const SUBCOMMANDS = [
 	"serve",
 	"slice",
 	"plan",
+	"palmier",
 ] as const;
 
 const HELP_TEXT = `Usage: auto-editor <command> [options]
@@ -80,6 +98,11 @@ Commands:
                           --mode compare → scenes/palmier-compare-plan.json
                           (A/B parallel-track slots); --mode final --selection
                           <sel.json> → scenes/palmier-final-plan.json (winners)
+  palmier <action>        Drive the palmier-pro desktop app + its MCP server
+                          (127.0.0.1:19789). launch → start the app and wait
+                          for the server; status → server/project state;
+                          create-project <name> → new .palmier project
+                          (requires palmier-pro ≥0.5.1)
 
 Back-compat:
   auto-editor <video>     If the first argument is a video file (not a command),
@@ -109,6 +132,17 @@ plan options:
   --mode <m>              concat (default) | compare | final
   --selection <path>      Per-scene winners JSON (required for --mode final)
 
+palmier actions:
+  launch                  Launch PalmierPro.app (background) and wait for the
+                          MCP server to bind — no-op if already running
+  status                  Server up/down, version, tool count, project list,
+                          open-project timeline settings
+  create-project <name>   Create + open a named .palmier project
+                          (~/Documents/Palmier Pro/<name>.palmier)
+    --fps <n>             Timeline fps to set after creation (1-120)
+    --width <n>           Timeline width in px
+    --height <n>          Timeline height in px
+
   -h, --help              Show this help message
 
 Examples:
@@ -120,6 +154,8 @@ Examples:
   auto-editor plan client/comet/storyboards/one-pair-three-lives
   auto-editor plan client/comet/storyboards/one-pair-three-lives --mode compare
   auto-editor plan <dir> --mode final --selection scenes/selection.json
+  auto-editor palmier launch
+  auto-editor palmier create-project my-edit --fps 24 --width 720 --height 1280
 
 Valid models: ${VALID_MODELS.join(", ")}
 `;
@@ -302,6 +338,59 @@ export function parsePlanArgs(argv: string[]): PlanArgs {
 	return { projectDir, mode, selection };
 }
 
+export function parsePalmierArgs(argv: string[]): PalmierArgs {
+	const action = argv[0];
+	if (
+		action !== "launch" &&
+		action !== "status" &&
+		action !== "create-project"
+	) {
+		throw new Error(
+			`Invalid palmier action: ${action ?? "(none)"}. Expected launch, status, or create-project.`,
+		);
+	}
+
+	if (action !== "create-project") {
+		return { action };
+	}
+
+	let name: string | undefined;
+	let fps: number | undefined;
+	let width: number | undefined;
+	let height: number | undefined;
+
+	const numFlag = (flag: string, raw: string, min: number, max: number) => {
+		const parsed = Number(raw);
+		if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+			throw new Error(
+				`Invalid ${flag}: ${raw}. Expected an integer between ${min} and ${max}.`,
+			);
+		}
+		return parsed;
+	};
+
+	for (let i = 1; i < argv.length; i++) {
+		const arg = argv[i];
+		if (arg === "--fps") {
+			fps = numFlag("--fps", argv[++i], 1, 120);
+		} else if (arg === "--width") {
+			width = numFlag("--width", argv[++i], 1, 16384);
+		} else if (arg === "--height") {
+			height = numFlag("--height", argv[++i], 1, 16384);
+		} else if (!arg.startsWith("-")) {
+			name = arg;
+		}
+	}
+
+	if (!name) {
+		throw new Error(
+			"create-project requires a project name. Run with --help for usage.",
+		);
+	}
+
+	return { action, name, fps, width, height };
+}
+
 /**
  * Dispatch argv to a subcommand. Keeps full back-compat: a first argument that
  * is not a known subcommand falls through to the caption parser (so old
@@ -328,6 +417,9 @@ export function parseCommand(argv: string[]): Command {
 	}
 	if (first === "plan") {
 		return { type: "plan", args: parsePlanArgs(rest) };
+	}
+	if (first === "palmier") {
+		return { type: "palmier", args: parsePalmierArgs(rest) };
 	}
 
 	// Back-compat: not a known subcommand → treat the whole argv as caption args.
@@ -540,6 +632,91 @@ async function runPlan(args: PlanArgs): Promise<void> {
 	console.log(`Order: ${order}`);
 }
 
+function printPalmierStatus(status: {
+	up: boolean;
+	server?: { name: string; version: string };
+	toolCount?: number;
+	hasProjectTools?: boolean;
+	projects?: Array<{ name: string; isOpen: boolean; isActive: boolean }>;
+	timeline?: { fps?: number; width?: number; height?: number };
+	canGenerate?: boolean;
+}): void {
+	if (!status.up) {
+		console.log(
+			"palmier MCP server: DOWN (127.0.0.1:19789) — run `auto-editor palmier launch`.",
+		);
+		return;
+	}
+	console.log(
+		`palmier MCP server: UP — ${status.server?.name} v${status.server?.version}, ${status.toolCount} tools`,
+	);
+	console.log(
+		status.hasProjectTools
+			? "project tools: available (get_projects / open_project / new_project)"
+			: "project tools: MISSING — update palmier-pro to ≥0.5.1",
+	);
+	if (status.projects) {
+		if (status.projects.length === 0) {
+			console.log("projects: none registered");
+		} else {
+			for (const p of status.projects) {
+				const mark = p.isActive ? "* " : p.isOpen ? "o " : "  ";
+				console.log(`  ${mark}${p.name}`);
+			}
+		}
+	}
+	if (status.timeline?.fps !== undefined) {
+		console.log(
+			`open timeline: ${status.timeline.width}x${status.timeline.height} @ ${status.timeline.fps}fps` +
+				(status.canGenerate === undefined
+					? ""
+					: ` (canGenerate: ${status.canGenerate})`),
+		);
+	} else {
+		console.log("open timeline: none (no project open)");
+	}
+}
+
+async function runPalmier(args: PalmierArgs): Promise<void> {
+	if (args.action === "status") {
+		printPalmierStatus(await getStatus());
+		return;
+	}
+
+	if (args.action === "launch") {
+		const result = await launchAndWait();
+		console.log(
+			result.alreadyRunning
+				? "PalmierPro already running."
+				: `PalmierPro launched — server bound in ~${result.secondsToBind}s.`,
+		);
+		printPalmierStatus(result.status);
+		return;
+	}
+
+	// create-project: ensure the app is up, then create + apply settings.
+	const launch = await launchAndWait();
+	if (!launch.alreadyRunning) {
+		console.log(
+			`PalmierPro launched (server up in ~${launch.secondsToBind}s).`,
+		);
+	}
+	console.log(`Creating project "${args.name}"...`);
+	const { timeline } = await createPalmierProject({
+		name: args.name as string,
+		fps: args.fps,
+		width: args.width,
+		height: args.height,
+	});
+	console.log(
+		`Done! "${args.name}" created and open` +
+			(timeline?.fps !== undefined
+				? ` — ${timeline.width}x${timeline.height} @ ${timeline.fps}fps.`
+				: "."),
+	);
+	console.log(`Project file: ~/Documents/Palmier Pro/${args.name}.palmier`);
+}
+
 async function runServe(args: ServeArgs): Promise<void> {
 	// Loaded via a variable specifier so the CLI typechecks before the editor
 	// server module (Task #5) exists.
@@ -592,6 +769,9 @@ async function main(): Promise<void> {
 			return;
 		case "plan":
 			await runPlan(command.args);
+			return;
+		case "palmier":
+			await runPalmier(command.args);
 			return;
 	}
 }
