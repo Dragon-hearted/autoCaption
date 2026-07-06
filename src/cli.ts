@@ -5,6 +5,18 @@ import {
 	renderMotionClip,
 	resolveTemplatePath,
 } from "./pipeline/motion-graphics";
+import {
+	createPalmierProject,
+	getStatus,
+	launchAndWait,
+} from "./pipeline/palmier-ctl";
+import {
+	buildComparePlan,
+	buildFinalPlan,
+	buildPalmierPlan,
+	type Selection,
+} from "./pipeline/palmier-plan";
+import { sliceProject } from "./pipeline/scene-slicer";
 import { getOutputPath, renderProject, renderVideo } from "./render";
 import { writeSrt } from "./srt";
 import { transcribeVideo, VALID_MODELS, writeCaptionsJson } from "./transcribe";
@@ -31,13 +43,47 @@ export interface ServeArgs {
 	projectPath?: string;
 }
 
+export interface SliceArgs {
+	projectDir: string;
+}
+
+export type PlanMode = "concat" | "compare" | "final";
+
+export interface PlanArgs {
+	projectDir: string;
+	mode: PlanMode;
+	/** Path to a selection.json — required when mode === "final". */
+	selection?: string;
+}
+
+export type PalmierAction = "launch" | "status" | "create-project";
+
+export interface PalmierArgs {
+	action: PalmierAction;
+	/** create-project only. */
+	name?: string;
+	fps?: number;
+	width?: number;
+	height?: number;
+}
+
 export type Command =
 	| { type: "caption"; args: ParsedArgs }
 	| { type: "edit"; args: EditArgs }
 	| { type: "serve"; args: ServeArgs }
+	| { type: "slice"; args: SliceArgs }
+	| { type: "plan"; args: PlanArgs }
+	| { type: "palmier"; args: PalmierArgs }
 	| { type: "help" };
 
-export const SUBCOMMANDS = ["caption", "edit", "serve"] as const;
+export const SUBCOMMANDS = [
+	"caption",
+	"edit",
+	"serve",
+	"slice",
+	"plan",
+	"palmier",
+] as const;
 
 const HELP_TEXT = `Usage: auto-editor <command> [options]
 
@@ -45,6 +91,18 @@ Commands:
   caption <video>         Transcribe a video and render burned-in captions
   edit <project.json>     Render an editable Project document to mp4
   serve [project.json]    Start the interactive browser editor
+  slice <project-dir>     Slice a storyboard project's block videos into
+                          per-scene clips + scenes.json (in <project>/scenes/)
+  plan <project-dir>      Order a sliced project's clips into a palmier plan.
+                          --mode concat (default) → scenes/palmier-plan.json;
+                          --mode compare → scenes/palmier-compare-plan.json
+                          (A/B parallel-track slots); --mode final --selection
+                          <sel.json> → scenes/palmier-final-plan.json (winners)
+  palmier <action>        Drive the palmier-pro desktop app + its MCP server
+                          (127.0.0.1:19789). launch → start the app and wait
+                          for the server; status → server/project state;
+                          create-project <name> → new .palmier project
+                          (requires palmier-pro ≥0.5.1)
 
 Back-compat:
   auto-editor <video>     If the first argument is a video file (not a command),
@@ -66,6 +124,25 @@ serve options:
   [project.json]          Project file to open (default: project.json in cwd)
   -p, --port <number>     Port to listen on (default: 4321)
 
+slice options:
+  <project-dir>           Storyboard project dir (e.g. client/x/storyboards/y)
+
+plan options:
+  <project-dir>           Sliced storyboard project dir (must have scenes.json)
+  --mode <m>              concat (default) | compare | final
+  --selection <path>      Per-scene winners JSON (required for --mode final)
+
+palmier actions:
+  launch                  Launch PalmierPro.app (background) and wait for the
+                          MCP server to bind — no-op if already running
+  status                  Server up/down, version, tool count, project list,
+                          open-project timeline settings
+  create-project <name>   Create + open a named .palmier project
+                          (~/Documents/Palmier Pro/<name>.palmier)
+    --fps <n>             Timeline fps to set after creation (1-120)
+    --width <n>           Timeline width in px
+    --height <n>          Timeline height in px
+
   -h, --help              Show this help message
 
 Examples:
@@ -73,6 +150,12 @@ Examples:
   auto-editor clip.mp4                       # same as: caption clip.mp4
   auto-editor edit project.json -o out.mp4
   auto-editor serve --port 4321
+  auto-editor slice client/comet/storyboards/one-pair-three-lives
+  auto-editor plan client/comet/storyboards/one-pair-three-lives
+  auto-editor plan client/comet/storyboards/one-pair-three-lives --mode compare
+  auto-editor plan <dir> --mode final --selection scenes/selection.json
+  auto-editor palmier launch
+  auto-editor palmier create-project my-edit --fps 24 --width 720 --height 1280
 
 Valid models: ${VALID_MODELS.join(", ")}
 `;
@@ -182,6 +265,132 @@ export function parseServeArgs(argv: string[]): ServeArgs {
 	return { port, projectPath };
 }
 
+export function parseSliceArgs(argv: string[]): SliceArgs {
+	let projectDir: string | undefined;
+
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		if (!arg.startsWith("-")) projectDir = arg;
+	}
+
+	if (!projectDir) {
+		throw new Error(
+			"No storyboard project directory provided. Run with --help for usage.",
+		);
+	}
+
+	if (!fs.existsSync(projectDir)) {
+		throw new Error(`Project directory not found: ${projectDir}`);
+	}
+	if (!fs.statSync(projectDir).isDirectory()) {
+		throw new Error(`Not a directory: ${projectDir}`);
+	}
+
+	return { projectDir };
+}
+
+export function parsePlanArgs(argv: string[]): PlanArgs {
+	let projectDir: string | undefined;
+	let mode: PlanMode = "concat";
+	let selection: string | undefined;
+
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		if (arg === "--mode") {
+			const raw = argv[++i];
+			if (raw !== "concat" && raw !== "compare" && raw !== "final") {
+				throw new Error(
+					`Invalid --mode: ${raw}. Expected concat, compare, or final.`,
+				);
+			}
+			mode = raw;
+		} else if (arg === "--selection") {
+			selection = argv[++i];
+		} else if (!arg.startsWith("-")) {
+			projectDir = arg;
+		}
+	}
+
+	if (!projectDir) {
+		throw new Error(
+			"No storyboard project directory provided. Run with --help for usage.",
+		);
+	}
+
+	if (!fs.existsSync(projectDir)) {
+		throw new Error(`Project directory not found: ${projectDir}`);
+	}
+	if (!fs.statSync(projectDir).isDirectory()) {
+		throw new Error(`Not a directory: ${projectDir}`);
+	}
+
+	if (mode === "final") {
+		if (!selection) {
+			throw new Error(
+				"--mode final requires --selection <path.json> (per-scene winners).",
+			);
+		}
+		if (!fs.existsSync(selection)) {
+			throw new Error(`Selection file not found: ${selection}`);
+		}
+	}
+
+	return { projectDir, mode, selection };
+}
+
+export function parsePalmierArgs(argv: string[]): PalmierArgs {
+	const action = argv[0];
+	if (
+		action !== "launch" &&
+		action !== "status" &&
+		action !== "create-project"
+	) {
+		throw new Error(
+			`Invalid palmier action: ${action ?? "(none)"}. Expected launch, status, or create-project.`,
+		);
+	}
+
+	if (action !== "create-project") {
+		return { action };
+	}
+
+	let name: string | undefined;
+	let fps: number | undefined;
+	let width: number | undefined;
+	let height: number | undefined;
+
+	const numFlag = (flag: string, raw: string, min: number, max: number) => {
+		const parsed = Number(raw);
+		if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+			throw new Error(
+				`Invalid ${flag}: ${raw}. Expected an integer between ${min} and ${max}.`,
+			);
+		}
+		return parsed;
+	};
+
+	for (let i = 1; i < argv.length; i++) {
+		const arg = argv[i];
+		if (arg === "--fps") {
+			fps = numFlag("--fps", argv[++i], 1, 120);
+		} else if (arg === "--width") {
+			width = numFlag("--width", argv[++i], 1, 16384);
+		} else if (arg === "--height") {
+			height = numFlag("--height", argv[++i], 1, 16384);
+		} else if (!arg.startsWith("-")) {
+			name = arg;
+		}
+	}
+
+	if (!name) {
+		throw new Error(
+			"create-project requires a project name. Run with --help for usage.",
+		);
+	}
+
+	return { action, name, fps, width, height };
+}
+
 /**
  * Dispatch argv to a subcommand. Keeps full back-compat: a first argument that
  * is not a known subcommand falls through to the caption parser (so old
@@ -202,6 +411,15 @@ export function parseCommand(argv: string[]): Command {
 	}
 	if (first === "serve") {
 		return { type: "serve", args: parseServeArgs(rest) };
+	}
+	if (first === "slice") {
+		return { type: "slice", args: parseSliceArgs(rest) };
+	}
+	if (first === "plan") {
+		return { type: "plan", args: parsePlanArgs(rest) };
+	}
+	if (first === "palmier") {
+		return { type: "palmier", args: parsePalmierArgs(rest) };
 	}
 
 	// Back-compat: not a known subcommand → treat the whole argv as caption args.
@@ -353,6 +571,152 @@ async function generateMotionClips(project: Project): Promise<void> {
 	}
 }
 
+async function runSlice(args: SliceArgs): Promise<void> {
+	console.log(`Slicing storyboard project ${args.projectDir}...`);
+	const manifest = await sliceProject(args.projectDir);
+	const clips = manifest.scenes.reduce((n, s) => n + s.variants.length, 0);
+	const out = path.join(args.projectDir, "scenes", "scenes.json");
+	console.log(
+		`\nDone! ${manifest.scenes.length} scenes, ${clips} clips → ${out}`,
+	);
+}
+
+async function runPlan(args: PlanArgs): Promise<void> {
+	const scenesDir = path.join(args.projectDir, "scenes");
+
+	if (args.mode === "compare") {
+		console.log(`Planning A/B compare timeline for ${args.projectDir}...`);
+		const plan = buildComparePlan(args.projectDir);
+		const out = path.join(scenesDir, "palmier-compare-plan.json");
+		fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+		const clips = plan.slots.reduce((n, s) => n + s.variants.length, 0);
+		console.log(
+			`\nDone! ${plan.slots.length} slots, ${clips} variant clips ` +
+				`(A/B parallel tracks) → ${out}`,
+		);
+		return;
+	}
+
+	if (args.mode === "final") {
+		console.log(
+			`Planning final single-track timeline for ${args.projectDir}...`,
+		);
+		const selection = JSON.parse(
+			fs.readFileSync(args.selection as string, "utf8"),
+		) as Selection;
+		const plan = buildFinalPlan(args.projectDir, selection);
+		const out = path.join(scenesDir, "palmier-final-plan.json");
+		fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+		const order = plan.clips
+			.map((c) => `${c.block}${c.variant}${c.scene}`)
+			.join(" ");
+		console.log(
+			`\nDone! ${plan.clips.length} winner clips (single track) → ${out}`,
+		);
+		console.log(`Order: ${order}`);
+		return;
+	}
+
+	// concat (default) — unchanged v1 behavior.
+	console.log(`Planning palmier timeline for ${args.projectDir}...`);
+	const plan = buildPalmierPlan(args.projectDir);
+	const out = path.join(args.projectDir, "scenes", "palmier-plan.json");
+	fs.writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+
+	const order = plan.clips
+		.map((c) => `${c.block}${c.variant}${c.scene}`)
+		.join(" ");
+	console.log(
+		`\nDone! ${plan.clips.length} clips (Block→variant→scene) → ${out}`,
+	);
+	console.log(`Order: ${order}`);
+}
+
+function printPalmierStatus(status: {
+	up: boolean;
+	server?: { name: string; version: string };
+	toolCount?: number;
+	hasProjectTools?: boolean;
+	projects?: Array<{ name: string; isOpen: boolean; isActive: boolean }>;
+	timeline?: { fps?: number; width?: number; height?: number };
+	canGenerate?: boolean;
+}): void {
+	if (!status.up) {
+		console.log(
+			"palmier MCP server: DOWN (127.0.0.1:19789) — run `auto-editor palmier launch`.",
+		);
+		return;
+	}
+	console.log(
+		`palmier MCP server: UP — ${status.server?.name} v${status.server?.version}, ${status.toolCount} tools`,
+	);
+	console.log(
+		status.hasProjectTools
+			? "project tools: available (get_projects / open_project / new_project)"
+			: "project tools: MISSING — update palmier-pro to ≥0.5.1",
+	);
+	if (status.projects) {
+		if (status.projects.length === 0) {
+			console.log("projects: none registered");
+		} else {
+			for (const p of status.projects) {
+				const mark = p.isActive ? "* " : p.isOpen ? "o " : "  ";
+				console.log(`  ${mark}${p.name}`);
+			}
+		}
+	}
+	if (status.timeline?.fps !== undefined) {
+		console.log(
+			`open timeline: ${status.timeline.width}x${status.timeline.height} @ ${status.timeline.fps}fps` +
+				(status.canGenerate === undefined
+					? ""
+					: ` (canGenerate: ${status.canGenerate})`),
+		);
+	} else {
+		console.log("open timeline: none (no project open)");
+	}
+}
+
+async function runPalmier(args: PalmierArgs): Promise<void> {
+	if (args.action === "status") {
+		printPalmierStatus(await getStatus());
+		return;
+	}
+
+	if (args.action === "launch") {
+		const result = await launchAndWait();
+		console.log(
+			result.alreadyRunning
+				? "PalmierPro already running."
+				: `PalmierPro launched — server bound in ~${result.secondsToBind}s.`,
+		);
+		printPalmierStatus(result.status);
+		return;
+	}
+
+	// create-project: ensure the app is up, then create + apply settings.
+	const launch = await launchAndWait();
+	if (!launch.alreadyRunning) {
+		console.log(
+			`PalmierPro launched (server up in ~${launch.secondsToBind}s).`,
+		);
+	}
+	console.log(`Creating project "${args.name}"...`);
+	const { timeline } = await createPalmierProject({
+		name: args.name as string,
+		fps: args.fps,
+		width: args.width,
+		height: args.height,
+	});
+	console.log(
+		`Done! "${args.name}" created and open` +
+			(timeline?.fps !== undefined
+				? ` — ${timeline.width}x${timeline.height} @ ${timeline.fps}fps.`
+				: "."),
+	);
+	console.log(`Project file: ~/Documents/Palmier Pro/${args.name}.palmier`);
+}
+
 async function runServe(args: ServeArgs): Promise<void> {
 	// Loaded via a variable specifier so the CLI typechecks before the editor
 	// server module (Task #5) exists.
@@ -399,6 +763,15 @@ async function main(): Promise<void> {
 			return;
 		case "serve":
 			await runServe(command.args);
+			return;
+		case "slice":
+			await runSlice(command.args);
+			return;
+		case "plan":
+			await runPlan(command.args);
+			return;
+		case "palmier":
+			await runPalmier(command.args);
 			return;
 	}
 }

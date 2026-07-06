@@ -35,6 +35,12 @@ dev:
 render *args:
   bun run src/cli.ts {{args}}
 
+# Order a sliced storyboard project's clips (Block→variant→scene) into
+# scenes/palmier-plan.json for the palmier editor.
+#   just plan <project-dir>
+plan *args:
+  bun run src/cli.ts plan {{args}}
+
 # ─── Setup ──────────────────────────────────────────────
 
 # Install dependencies

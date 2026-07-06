@@ -5,6 +5,7 @@ import {
 	parseArgs,
 	parseCommand,
 	parseEditArgs,
+	parsePlanArgs,
 	parseServeArgs,
 } from "../src/cli";
 import { getOutputPath } from "../src/render";
@@ -220,6 +221,76 @@ describe("parseCommand dispatcher", () => {
 			expect(cmd.args.port).toBe(8080);
 		}
 		expect(parseServeArgs([]).projectPath).toBeUndefined();
+	});
+});
+
+describe("parsePlanArgs", () => {
+	let tempDir: { path: string; cleanup: () => void };
+
+	beforeEach(() => {
+		tempDir = createTempDir();
+	});
+
+	afterEach(() => {
+		tempDir.cleanup();
+	});
+
+	it("defaults mode to concat", () => {
+		const args = parsePlanArgs([tempDir.path]);
+		expect(args.projectDir).toBe(tempDir.path);
+		expect(args.mode).toBe("concat");
+		expect(args.selection).toBeUndefined();
+	});
+
+	it("parses --mode compare", () => {
+		const args = parsePlanArgs([tempDir.path, "--mode", "compare"]);
+		expect(args.mode).toBe("compare");
+	});
+
+	it("parses --mode final with --selection", () => {
+		const sel = join(tempDir.path, "selection.json");
+		writeFileSync(sel, JSON.stringify({ "2": ["a"] }));
+		const args = parsePlanArgs([
+			tempDir.path,
+			"--mode",
+			"final",
+			"--selection",
+			sel,
+		]);
+		expect(args.mode).toBe("final");
+		expect(args.selection).toBe(sel);
+	});
+
+	it("throws on an unknown --mode", () => {
+		expect(() => parsePlanArgs([tempDir.path, "--mode", "bogus"])).toThrow(
+			/invalid --mode/i,
+		);
+	});
+
+	it("throws when --mode final is missing --selection", () => {
+		expect(() => parsePlanArgs([tempDir.path, "--mode", "final"])).toThrow(
+			/--selection/,
+		);
+	});
+
+	it("throws when the selection file does not exist", () => {
+		expect(() =>
+			parsePlanArgs([
+				tempDir.path,
+				"--mode",
+				"final",
+				"--selection",
+				join(tempDir.path, "nope.json"),
+			]),
+		).toThrow(/selection file not found/i);
+	});
+
+	it("dispatches plan subcommand through parseCommand", () => {
+		const cmd = parseCommand(["plan", tempDir.path, "--mode", "compare"]);
+		expect(cmd.type).toBe("plan");
+		if (cmd.type === "plan") {
+			expect(cmd.args.mode).toBe("compare");
+		}
 	});
 });
 

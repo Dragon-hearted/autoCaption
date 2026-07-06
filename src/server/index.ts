@@ -24,6 +24,8 @@
  *   GET  /              -> editor HTML (public/index.html)
  *   GET  /dist/*        -> built player bundle + editor assets
  *   GET  /media/*       -> media files resolved relative to the project dir
+ *   GET  /scenes/*      -> storyboard scene clips + poster thumbs + scenes.json
+ *                         (the `auto-editor slice` output the Scene Library reads)
  *   GET  /api/project   -> read project.json (defaultProject if absent)
  *   PUT  /api/project   -> validateProject() + atomic autosave to disk
  *   POST /api/export    -> renderProject() -> mp4, returns { outputPath }
@@ -33,6 +35,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, extname, join, normalize, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import {
 	defaultProject,
@@ -48,6 +51,14 @@ export type StartServerOptions = {
 	 * Defaults to `project.json` in the current working directory.
 	 */
 	projectPath?: string;
+	/**
+	 * Storyboard project's `scenes/` dir (clips + poster jpgs + scenes.json,
+	 * produced by `auto-editor slice`) served at `/scenes/*` for the Scene
+	 * Library panel. Defaults to `<projectDir>/scenes`; `AUTO_EDITOR_SCENES_DIR`
+	 * is also honored. Point it at a storyboard project's scenes dir when the
+	 * editor's project.json lives elsewhere.
+	 */
+	scenesDir?: string;
 };
 
 export type StartServerResult = {
@@ -60,15 +71,18 @@ export type StartServerResult = {
 
 const DEFAULT_PORT = 3009;
 
-// `import.meta.dir` is .../src/server -> public lives at the repo root.
-const PUBLIC_DIR = join(import.meta.dir, "..", "..", "public");
+// .../src/server -> public lives at the repo root. `import.meta.dir` is the
+// Bun-native value; fall back to the standard URL so the module is importable
+// under Node/vitest too (where `import.meta.dir` is undefined).
+const MODULE_DIR = import.meta.dir ?? dirname(fileURLToPath(import.meta.url));
+const PUBLIC_DIR = join(MODULE_DIR, "..", "..", "public");
 
 // ---------------------------------------------------------------------------
 // Path helpers
 // ---------------------------------------------------------------------------
 
 /** Join `rel` onto `base`, refusing to escape `base` (path-traversal guard). */
-function safeJoin(base: string, rel: string): string | null {
+export function safeJoin(base: string, rel: string): string | null {
 	const abs = normalize(join(base, rel));
 	const root = normalize(base);
 	if (abs !== root && !abs.startsWith(`${root}/`)) {
@@ -164,9 +178,13 @@ function defaultExportPath(projectPath: string, project: Project): string {
 // App
 // ---------------------------------------------------------------------------
 
-export function createApp(projectPath: string): Hono {
+export function createApp(projectPath: string, scenesDirOpt?: string): Hono {
 	const app = new Hono();
 	const projectDir = dirname(resolve(projectPath));
+	// Storyboard scene clips + thumbs + scenes.json (from `auto-editor slice`).
+	// Defaults to <projectDir>/scenes so an editor project living inside the
+	// storyboard project dir needs zero config; override for a separate location.
+	const scenesDir = resolve(scenesDirOpt ?? join(projectDir, "scenes"));
 
 	app.get("/", () => serveFile(join(PUBLIC_DIR, "index.html")));
 
@@ -180,6 +198,15 @@ export function createApp(projectPath: string): Hono {
 	app.get("/media/*", (c) => {
 		const rel = decodeURIComponent(c.req.path.replace(/^\/media\//, ""));
 		return serveFile(safeJoin(projectDir, rel));
+	});
+
+	// Storyboard scenes: clips, poster jpgs, and scenes.json. Mirrors /media/*
+	// (same safeJoin path-traversal guard). The manifest's clip/thumb paths are
+	// `scenes/…` relative to the storyboard project dir, so `/${clip}` maps
+	// straight onto this route and staticFile(clip) in the Player resolves here.
+	app.get("/scenes/*", (c) => {
+		const rel = decodeURIComponent(c.req.path.replace(/^\/scenes\//, ""));
+		return serveFile(safeJoin(scenesDir, rel));
 	});
 
 	app.get("/api/project", async (c) => {
@@ -260,7 +287,8 @@ export function startServer(
 	const projectPath = resolve(options.projectPath ?? "project.json");
 	const port =
 		options.port ?? (Number(process.env.AUTO_EDITOR_PORT) || DEFAULT_PORT);
-	const app = createApp(projectPath);
+	const scenesDir = options.scenesDir ?? process.env.AUTO_EDITOR_SCENES_DIR;
+	const app = createApp(projectPath, scenesDir);
 	const server = Bun.serve({
 		port,
 		hostname: "127.0.0.1",
@@ -289,7 +317,16 @@ if (import.meta.main) {
 	const projectPath =
 		args.find((a) => !a.startsWith("--") && a !== String(port)) ??
 		"project.json";
-	const { url, projectPath: resolved } = startServer({ port, projectPath });
+	// ponytail: optional --scenes <dir> override; else AUTO_EDITOR_SCENES_DIR /
+	// the <projectDir>/scenes default kick in inside startServer/createApp.
+	const scenesFlag = args.indexOf("--scenes");
+	const scenesDir =
+		scenesFlag >= 0 && args[scenesFlag + 1] ? args[scenesFlag + 1] : undefined;
+	const { url, projectPath: resolved } = startServer({
+		port,
+		projectPath,
+		scenesDir,
+	});
 	console.log(`AutoEditor editor on ${url}`);
 	console.log(`editing ${resolved}`);
 }
